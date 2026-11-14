@@ -17,20 +17,28 @@ public sealed class BalanceConfig
     public int PlotColumns { get; init; } = 2;
     public int PlotRows { get; init; } = 2;
 
-    // Domes (player-built greenhouses with plot slots)
-    public int DomeWidth { get; init; } = 140;
-    public int DomeHeight { get; init; } = 104;
-    public int DomeSlotColumns { get; init; } = 2;
-    public int DomeSlotRows { get; init; } = 2;
+    // Domes are empty shells: farms and utilities are placed inside them afterward.
+    // The footprint leaves room for 12 interior slots (more than four farms).
+    public int DomeWidth { get; init; } = 220;
+    public int DomeHeight { get; init; } = 150;
+    public int DomeSlotColumns { get; init; } = 4;
+    public int DomeSlotRows { get; init; } = 3;
     public float DomeSlotGap { get; init; } = 10f;
-    public float DomeSlotMarginX { get; init; } = 18f;
-    public float DomeSlotMarginY { get; init; } = 18f;
+    public float DomeSlotMarginX { get; init; } = 27f;
+    public float DomeSlotMarginY { get; init; } = 14f;
+
+    public int DomeMaxLevel { get; init; } = 3;
+    public float DomeTerminalRadius { get; init; } = 30f;
 
     public double DomeStartEnergy { get; init; } = 40;
-    public double DomeMaxEnergy { get; init; } = 100;
+    public double DomeBaseEnergy { get; init; } = 60;
+    public double BatteryStorage { get; init; } = 80;
     public double DomeTargetTempC { get; init; } = 22;
-    public double DomeSolarRate { get; init; } = 2.2;
+    public double DomePassiveSolar { get; init; } = 0.3;
+    public double SolarPanelOutput { get; init; } = 2.0;
     public double DomeEnergyPerDegreePerSec { get; init; } = 0.02;
+    public double RestEnergyGain { get; init; } = 60;
+    public double RestCooldown { get; init; } = 15;
 
     public IReadOnlyDictionary<string, int> DomeCost { get; init; } = new Dictionary<string, int>
     {
@@ -38,6 +46,42 @@ public sealed class BalanceConfig
         ["silicio"] = 4,
         ["roca"] = 6,
     };
+
+    // Interior fixtures (placed on a dome slot).
+    public IReadOnlyDictionary<string, int> FarmCost { get; init; } = new Dictionary<string, int>
+    {
+        ["roca"] = 3,
+    };
+
+    public IReadOnlyDictionary<string, int> SolarPanelCost { get; init; } = new Dictionary<string, int>
+    {
+        ["silicio"] = 4,
+        ["hierro"] = 2,
+    };
+
+    public IReadOnlyDictionary<string, int> BatteryCost { get; init; } = new Dictionary<string, int>
+    {
+        ["hierro"] = 3,
+        ["silicio"] = 2,
+    };
+
+    public IReadOnlyDictionary<string, int> BunkCost { get; init; } = new Dictionary<string, int>
+    {
+        ["roca"] = 3,
+        ["hierro"] = 2,
+    };
+
+    /// <summary>Cost to upgrade a dome from (key-1) to key. Level is capped at DomeMaxLevel.</summary>
+    public IReadOnlyDictionary<int, IReadOnlyDictionary<string, int>> DomeUpgradeCost { get; init; } =
+        new Dictionary<int, IReadOnlyDictionary<string, int>>
+        {
+            [2] = new Dictionary<string, int> { ["hierro"] = 6, ["silicio"] = 6, ["roca"] = 8 },
+            [3] = new Dictionary<string, int> { ["hierro"] = 10, ["silicio"] = 10, ["roca"] = 12 },
+        };
+
+    // Developer mode (unlocked by typing "marscolonization")
+    public int DevItemAmount { get; init; } = 99;
+    public double DevGrowSpeedMultiplier { get; init; } = 10;
 
     // Environment / weather coupling
     public double StormLightFactor { get; init; } = 0.45;
@@ -49,11 +93,6 @@ public sealed class BalanceConfig
     public float ShipY { get; init; } = 30;
     public float ShipWidth { get; init; } = 170;
     public float ShipHeight { get; init; } = 118;
-
-    public float FarmX { get; init; } = 26;
-    public float FarmY { get; init; } = 314;
-    public float FarmWidth { get; init; } = 198;
-    public float FarmHeight { get; init; } = 108;
 
     // Astronaut
     public float NormalSpeed { get; init; } = 100f;
@@ -76,11 +115,15 @@ public sealed class BalanceConfig
     public float ShipTargetRadius { get; init; } = 40f;
     public float ShipNearRadius { get; init; } = 48f;
 
+    // Occupied footprints for structure placement and vein respawn.
+    public float NodeFootprintRadius { get; init; } = 18f;
+    public float PickupFootprintRadius { get; init; } = 10f;
+    public float StationFootprintRadius { get; init; } = 18f;
+    public double NodeBlockedRetry { get; init; } = 5;
+
     // Base stations (world positions). The ship itself is the ship upgrades station.
     public float WorkbenchX { get; init; } = 240f;
     public float WorkbenchY { get; init; } = 250f;
-    public float FarmConsoleX { get; init; } = 250f;
-    public float FarmConsoleY { get; init; } = 320f;
 
     // Simulation clock
     public double SolLength { get; init; } = 240;

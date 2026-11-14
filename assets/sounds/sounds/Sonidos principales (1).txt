@@ -1,0 +1,36 @@
+Sonidos principales:
+
+Pasos sobre regolito.
+Respiración del astronauta.
+Recoger objetos.
+Golpes de martillo y pico.
+Extracción de minerales.
+Abrir y cerrar inventario.
+Fabricar herramientas.
+Trituradora.
+Colocar estructuras.
+Música ambiental básica.
+
+
+
+Sonidos siguientes:
+
+Ventilación y presurización.
+Paneles solares y baterías.
+Máquinas de procesamiento.
+Agricultura e hidroponía.
+Alertas de oxígeno.
+Escáner científico.
+Tormentas de polvo.
+Sonidos de puertas y módulos.
+
+Ultimos sonidos:
+
+Variaciones de pasos según terreno.
+Sonidos específicos de cada mineral.
+Ambientes interiores diferentes.
+Drones y rovers.
+Eventos meteorológicos avanzados.
+Narrativa sonora.
+Música dinámica.
+Sonidos únicos para descubrimientos y acontecimientos.

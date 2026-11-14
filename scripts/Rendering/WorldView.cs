@@ -7,7 +7,7 @@ namespace NasaValley.Rendering;
 
 /// <summary>
 /// The 768x448 game viewport contents. Composes the static ground layer with the
-/// dynamic world (farm, ship, entities, effects, weather) each frame.
+/// dynamic world (domes, ship, entities, effects, weather) each frame.
 /// </summary>
 public partial class WorldView : Node2D
 {
@@ -65,11 +65,34 @@ public partial class WorldView : Node2D
     {
         foreach (var dome in s.Domes) WorldDraw.DrawDome(this, dome, b);
 
+        var slotCount = DomeLayout.SlotCount(b);
+        var highlighting = s.PendingFixture != null;
+        foreach (var dome in s.Domes)
+        {
+            for (var i = 0; i < slotCount; i++)
+            {
+                if (dome.IsSlotOccupied(i)) continue;
+                var (x, y) = DomeLayout.SlotPosition(b, dome, i);
+                WorldDraw.DrawDomeSlot(this, x, y, b, highlighting);
+            }
+        }
+
         foreach (var plot in s.Plots)
         {
             Session.Plants.TryGet(plot.PlantId, out var plant);
             WorldDraw.DrawPlantSlot(this, plot, plant, b, clock);
         }
+
+        foreach (var dome in s.Domes)
+        {
+            foreach (var fixture in dome.Fixtures)
+            {
+                var (x, y) = DomeLayout.SlotPosition(b, dome, fixture.SlotIndex);
+                WorldDraw.DrawFixture(this, fixture, x, y, b, clock);
+            }
+        }
+
+        foreach (var dome in s.Domes) WorldDraw.DrawDomeTerminal(this, dome, b);
 
         if (s.Building)
         {
@@ -114,6 +137,17 @@ public partial class WorldView : Node2D
                 break;
             case PlotTarget pt:
                 WorldDraw.DrawRing(this, pt.Plot.X - 1, pt.Plot.Y - 1, b.PlotSize + 2, b.PlotSize + 2);
+                break;
+            case DomeTerminalTarget dt:
+                WorldDraw.DrawRing(this, dt.Dome.CenterX - 16, dt.Dome.Y + dt.Dome.Height + 2, 32, 22);
+                break;
+            case DomeSlotTarget slot:
+                var (sx, sy) = DomeLayout.SlotPosition(b, slot.Dome, slot.SlotIndex);
+                WorldDraw.DrawRing(this, sx - 1, sy - 1, b.PlotSize + 2, b.PlotSize + 2);
+                break;
+            case DomeFixtureTarget fixture:
+                var (fx, fy) = DomeLayout.SlotPosition(b, fixture.Dome, fixture.Fixture.SlotIndex);
+                WorldDraw.DrawRing(this, fx - 1, fy - 1, b.PlotSize + 2, b.PlotSize + 2);
                 break;
             case ShipTarget:
                 WorldDraw.DrawRing(this, b.ShipX - 3, b.ShipY - 3, b.ShipWidth + 6, b.ShipHeight + 6);

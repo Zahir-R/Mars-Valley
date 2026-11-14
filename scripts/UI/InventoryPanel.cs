@@ -19,12 +19,14 @@ public sealed class InventoryPanel
         ("minerales", "Minerales"),
         ("componentes", "Componentes"),
         ("semillas", "Semillas"),
+        ("estructuras", "Estructuras"),
         ("otros", "Otros"),
     };
 
     public Control Root { get; }
 
     private readonly GameSession _session;
+    private readonly Action? _onPlaceDome;
     private readonly Dictionary<string, Button> _tabs = new();
     private readonly Dictionary<string, Button> _rows = new();
     private readonly VBoxContainer _list;
@@ -38,9 +40,10 @@ public sealed class InventoryPanel
     private string? _builtCategory;
     private string? _actionsFor;
 
-    public InventoryPanel(GameSession session)
+    public InventoryPanel(GameSession session, Action? onPlaceDome = null)
     {
         _session = session;
+        _onPlaceDome = onPlaceDome;
 
         var tabBar = new HFlowContainer();
         tabBar.AddThemeConstantOverride("h_separation", 4);
@@ -132,6 +135,7 @@ public sealed class InventoryPanel
                 Alignment = HorizontalAlignment.Left,
                 CustomMinimumSize = new Vector2(0, 34),
                 Icon = UiTheme.ColorTexture(Palette.FromHex(def.Color), 14),
+                FocusMode = Control.FocusModeEnum.None,
             };
             row.AddThemeFontOverride("font", Fonts.Sans);
             row.AddThemeFontSizeOverride("font_size", 13);
@@ -186,8 +190,8 @@ public sealed class InventoryPanel
         _descMeta.Text = $"{CategoryLabel(GroupOf(def))} · x{_session.State.Inventory[def.Id]}";
         _descText.Text = def.Description;
 
-        if (_actionsFor == _selected) return;
-        _actionsFor = _selected;
+        if (_actionsFor == ActionKey(def)) return;
+        _actionsFor = ActionKey(def);
 
         foreach (var child in _actions.GetChildren()) child.QueueFree();
 
@@ -201,6 +205,12 @@ public sealed class InventoryPanel
             source.Pressed += () => { _session.SetFoodSource(def.Id); Refresh(); };
             _actions.AddChild(source);
         }
+        else if (def.Id == BuildSystem.StoredDomeItem && _session.State.Inventory[def.Id] > 0)
+        {
+            var place = UiTheme.PrimaryButton("Colocar cúpula", 13);
+            place.Pressed += () => _onPlaceDome?.Invoke();
+            _actions.AddChild(place);
+        }
         else if (def.Category == ItemCategory.Tool)
         {
             var use = UiTheme.GhostButton("Usar", 12);
@@ -209,6 +219,11 @@ public sealed class InventoryPanel
         }
     }
 
+    private string ActionKey(ItemDefinition def) =>
+        def.Id == BuildSystem.StoredDomeItem
+            ? def.Id + ":" + (_session.State.Inventory[def.Id] > 0)
+            : def.Id;
+
     private static string GroupOf(ItemDefinition def) => def.Category switch
     {
         ItemCategory.Consumable => "comida",
@@ -216,6 +231,7 @@ public sealed class InventoryPanel
         ItemCategory.NaturalResource => "minerales",
         ItemCategory.Component or ItemCategory.Processed => "componentes",
         ItemCategory.Seed => "semillas",
+        ItemCategory.Structure => "estructuras",
         _ => "otros",
     };
 
@@ -227,6 +243,7 @@ public sealed class InventoryPanel
             "minerales" => "Mineral",
             "componentes" => "Componente",
             "semillas" => "Semilla",
+            "estructuras" => "Estructura",
             _ => "Objeto",
         };
 }

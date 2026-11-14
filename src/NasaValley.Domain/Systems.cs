@@ -54,7 +54,11 @@ public static class SurvivalSystem
 		var v = s.Vitals;
 		var k = s.Storm.Left > 0 ? b.StormDecayMultiplier : 1;
 
-		v.O2 = Math.Max(0, v.O2 - b.O2Decay * k * dt);
+		if (s.RestCooldown > 0) s.RestCooldown = Math.Max(0, s.RestCooldown - dt);
+
+		// Domes are pressurized safe zones: oxygen is not lost while inside one.
+		var sheltered = SafeZones.Contains(s, s.Px, s.Py);
+		if (!sheltered) v.O2 = Math.Max(0, v.O2 - b.O2Decay * k * dt);
 		v.Food = Math.Max(0, v.Food - b.FoodDecay * dt);
 		v.Energy = Math.Max(0, v.Energy - (b.EnergyDecay * k + (s.Moving ? b.EnergyMoveDecay : 0)) * dt);
 
@@ -125,7 +129,9 @@ public static class DomeSystem
 			var external = EnvironmentSystem.ExternalTemp(area, s, b);
 			dome.ExternalTempC = external;
 
-			dome.Energy = Math.Min(b.DomeMaxEnergy, dome.Energy + light * area.SolarFactor * b.DomeSolarRate * dt);
+			// Panels (plus a small passive trickle) charge the dome's buffer.
+			var generation = (b.DomePassiveSolar + dome.PanelCount * b.SolarPanelOutput) * light * area.SolarFactor;
+			dome.Energy = Math.Min(dome.EnergyCapacity(b), dome.Energy + generation * dt);
 
 			var needed = Math.Abs(external - b.DomeTargetTempC) * b.DomeEnergyPerDegreePerSec * dt;
 			if (dome.Energy >= needed)
@@ -149,6 +155,7 @@ public static class FarmingSystem
 		var s = ctx.State;
 		var b = ctx.Balance;
 		var light = EnvironmentSystem.Light(s, b);
+		var speed = s.DevMode ? b.DevGrowSpeedMultiplier : 1;
 
 		foreach (var plot in s.Plots)
 		{
@@ -159,7 +166,7 @@ public static class FarmingSystem
 			if (light < plant.MinLight) continue;
 			if (temp < plant.MinTempC || temp > plant.MaxTempC) continue;
 
-			plot.Time -= dt;
+			plot.Time -= dt * speed;
 			if (plot.Time <= 0)
 			{
 				plot.State = PlotState.Ready;
@@ -194,7 +201,16 @@ public static class NodeSystem
 			if (node.Shake > 0) node.Shake -= dt;
 			if (node.Amount > 0) continue;
 			node.Regen -= dt;
-			if (node.Regen <= 0) node.Amount = b.NodeAmount;
+			if (node.Regen > 0) continue;
+
+			// A structure built over a vein keeps it from regrowing.
+			if (WorldOccupancy.InsideAnyStructure(ctx.State, b, node.X, node.Y))
+			{
+				node.Regen = b.NodeBlockedRetry;
+				continue;
+			}
+
+			node.Amount = b.NodeAmount;
 		}
 	}
 }

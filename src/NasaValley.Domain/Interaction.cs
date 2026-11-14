@@ -10,6 +10,15 @@ public sealed record PickupTarget(Pickup Pickup) : InteractionTarget;
 
 public sealed record StationTarget(Station Station) : InteractionTarget;
 
+/// <summary>The management console placed below each built dome.</summary>
+public sealed record DomeTerminalTarget(Dome Dome) : InteractionTarget;
+
+/// <summary>An empty interior slot of a dome where a farm or utility can be built.</summary>
+public sealed record DomeSlotTarget(Dome Dome, int SlotIndex) : InteractionTarget;
+
+/// <summary>A utility already placed inside a dome (solar panel, battery, bunk).</summary>
+public sealed record DomeFixtureTarget(Dome Dome, Fixture Fixture) : InteractionTarget;
+
 public sealed record ShipTarget : InteractionTarget;
 
 /// <summary>
@@ -54,6 +63,33 @@ public static class InteractionSystem
             }
         }
 
+        foreach (var dome in s.Domes)
+        {
+            var slotCount = DomeLayout.SlotCount(b);
+            for (var i = 0; i < slotCount; i++)
+            {
+                if (dome.IsSlotOccupied(i)) continue;
+                var (sx, sy) = DomeLayout.SlotPosition(b, dome, i);
+                var d = Distance(sx + b.PlotSize / 2f, sy + b.PlotSize / 2f, s.Px, s.Py);
+                if (d < b.PlotInteractRadius && d < bestDistance)
+                {
+                    bestDistance = d;
+                    best = new DomeSlotTarget(dome, i);
+                }
+            }
+
+            foreach (var fixture in dome.Fixtures)
+            {
+                var (fx, fy) = DomeLayout.SlotPosition(b, dome, fixture.SlotIndex);
+                var d = Distance(fx + b.PlotSize / 2f, fy + b.PlotSize / 2f, s.Px, s.Py);
+                if (d < b.PlotInteractRadius && d < bestDistance)
+                {
+                    bestDistance = d;
+                    best = new DomeFixtureTarget(dome, fixture);
+                }
+            }
+        }
+
         foreach (var p in s.Pickups)
         {
             if (p.Taken) continue;
@@ -72,6 +108,16 @@ public static class InteractionSystem
             {
                 bestDistance = d;
                 best = new StationTarget(station);
+            }
+        }
+
+        foreach (var dome in s.Domes)
+        {
+            var d = Distance(dome.TerminalX, dome.TerminalY, s.Px, s.Py);
+            if (d < b.DomeTerminalRadius && d < bestDistance)
+            {
+                bestDistance = d;
+                best = new DomeTerminalTarget(dome);
             }
         }
 
@@ -108,12 +154,27 @@ public static class InteractionSystem
                 return st.Station.Kind switch
                 {
                     StationKind.Workbench => "Usar banco de trabajo",
-                    StationKind.Farm => "Consola del invernadero",
                     _ => "Abrir consola",
                 };
 
             case ShipTarget:
                 return "Abrir panel de la nave";
+
+            case DomeTerminalTarget dt:
+                return $"Terminal de la cúpula {dt.Dome.Id} (nivel {dt.Dome.Level})";
+
+            case DomeSlotTarget slot:
+                var kind = s.PendingFixture ?? FixtureKind.Farm;
+                return $"Colocar {BuildSystem.FixtureName(kind)} ({CostText(ctx, BuildSystem.FixtureCost(ctx.Balance, kind))})";
+
+            case DomeFixtureTarget ft:
+                return ft.Fixture.Kind switch
+                {
+                    FixtureKind.Bunk => "Descansar en la litera",
+                    FixtureKind.SolarPanel => "Panel solar · abrir terminal",
+                    FixtureKind.Battery => "Batería · abrir terminal",
+                    _ => "Revisar instalación",
+                };
 
             case PlotTarget pt:
                 return PlotPrompt(ctx, pt.Plot);
@@ -156,5 +217,17 @@ public static class InteractionSystem
         var dx = ax - bx;
         var dy = ay - by;
         return MathF.Sqrt(dx * dx + dy * dy);
+    }
+
+    private static string CostText(IGameContext ctx, IReadOnlyDictionary<string, int> cost)
+    {
+        if (cost.Count == 0) return "gratis";
+        var text = string.Empty;
+        foreach (var (item, amount) in cost)
+        {
+            if (text.Length > 0) text += " · ";
+            text += $"{ctx.Items[item].Name.ToLowerInvariant()} x{amount}";
+        }
+        return text;
     }
 }

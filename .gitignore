@@ -17,3 +17,6 @@ data_*/
 mono_crash.*.json
 /android/
 /.vs
+bin/
+obj/
+.direnv/

@@ -22,13 +22,14 @@ public partial class GameFrame : Control
     private readonly PanelContainer _prompt;
     private readonly Label _promptLabel;
     private readonly Control _cardLayer;
-    private readonly PanelContainer _startCard;
-    private readonly PanelContainer _pauseCard;
     private readonly PanelContainer _endCard;
     private readonly Label _endEyebrow;
     private readonly Label _endTitle;
     private readonly Label _endText;
+    private readonly Button _endButton;
     private readonly List<Control> _toastList = new();
+
+    public Action? BackToMenuRequested;
 
     public override void _Ready()
     {
@@ -77,16 +78,13 @@ public partial class GameFrame : Control
         _prompt.AddChild(promptBody);
 
         // --- cards ------------------------------------------------------------
-        _startCard = BuildStartCard();
-        _pauseCard = BuildPauseCard();
-        (_endCard, _endEyebrow, _endTitle, _endText) = BuildEndCard();
+        (_endCard, _endEyebrow, _endTitle, _endText, _endButton) = BuildEndCard();
+        _endButton.Pressed += () => BackToMenuRequested?.Invoke();
 
         _cardLayer = new Control { MouseFilter = MouseFilterEnum.Stop };
         _cardLayer.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
         var center = new CenterContainer();
         center.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
-        center.AddChild(_startCard);
-        center.AddChild(_pauseCard);
         center.AddChild(_endCard);
         _cardLayer.AddChild(center);
         _cardLayer.Visible = false;
@@ -103,55 +101,17 @@ public partial class GameFrame : Control
         }
     }
 
-    private PanelContainer BuildStartCard()
-    {
-        var keys = UiTheme.VBox(6);
-        keys.AddChild(KeyRow(new[] { "W", "A", "S", "D" }, "Moverte (también las flechas)"));
-        keys.AddChild(KeyRow(new[] { "E" }, "Extraer, plantar, regar, cosechar"));
-        keys.AddChild(KeyRow(new[] { "F" }, "Comer una papa"));
-        keys.AddChild(KeyRow(new[] { "P" }, "Pausa"));
-
-        var button = UiTheme.PrimaryButton("Iniciar misión", 14);
-        button.Pressed += () => Session.Start();
-
-        return MakeCard(
-            "Sol 1 · Cráter Gale",
-            "Varados en Marte",
-            "El aterrizaje fue brusco y el módulo de ascenso quedó dañado. Extrae hielo y minerales, cultiva papas en el invernadero y repara las cinco piezas antes de que se agote tu oxígeno.",
-            keys,
-            button);
-    }
-
-    private PanelContainer BuildPauseCard()
-    {
-        var button = UiTheme.PrimaryButton("Continuar", 14);
-        button.Pressed += () => Session.TogglePause();
-        return MakeCard("Misión en pausa", "Pausa", "El reloj marciano está detenido.", null, button);
-    }
-
-    private (PanelContainer Card, Label Eyebrow, Label Title, Label Text) BuildEndCard()
+    private (PanelContainer Card, Label Eyebrow, Label Title, Label Text, Button Button) BuildEndCard()
     {
         var eyebrow = UiTheme.Caption(string.Empty);
         var title = UiTheme.Text(string.Empty, 24, Palette.Suit, Fonts.DisplayWeight(700));
         var text = UiTheme.Label(string.Empty, 14, Palette.Muted);
         text.AutowrapMode = TextServer.AutowrapMode.WordSmart;
 
-        var button = UiTheme.PrimaryButton("Jugar de nuevo", 14);
-        button.Pressed += () => Session.Reset();
+        var button = UiTheme.PrimaryButton("Volver al menú", 14);
 
         var card = MakeCardRaw(eyebrow, title, text, null, button);
-        return (card, eyebrow, title, text);
-    }
-
-    private static PanelContainer MakeCard(string eyebrow, string title, string paragraph, Control? extra, Button button)
-    {
-        var card = MakeCardRaw(
-            UiTheme.Caption(eyebrow),
-            UiTheme.Text(title, 24, Palette.Suit, Fonts.DisplayWeight(700)),
-            UiTheme.Label(paragraph, 14, Palette.Muted),
-            extra,
-            button);
-        return card;
+        return (card, eyebrow, title, text, button);
     }
 
     private static PanelContainer MakeCardRaw(Label eyebrow, Label title, Label paragraph, Control? extra, Button button)
@@ -172,17 +132,6 @@ public partial class GameFrame : Control
         panel.AddThemeStyleboxOverride("panel", pad);
         panel.AddChild(body);
         return panel;
-    }
-
-    private static Control KeyRow(string[] keys, string description)
-    {
-        var row = UiTheme.HBox(10);
-        var keyBox = UiTheme.HBox(4);
-        foreach (var key in keys) keyBox.AddChild(Kbd(key));
-        keyBox.CustomMinimumSize = new Vector2(120, 0);
-        row.AddChild(keyBox);
-        row.AddChild(UiTheme.Label(description, 13, Palette.Muted));
-        return row;
     }
 
     private static PanelContainer Kbd(string text)
@@ -255,13 +204,9 @@ public partial class GameFrame : Control
 
     private void UpdateCards(GameState s)
     {
-        var boot = s.Flow == FlowState.Boot;
-        var paused = s.Flow == FlowState.Paused;
         var over = s.Over;
 
-        _cardLayer.Visible = boot || paused || over;
-        _startCard.Visible = boot;
-        _pauseCard.Visible = paused;
+        _cardLayer.Visible = over;
         _endCard.Visible = over;
 
         if (!over) return;

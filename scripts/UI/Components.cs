@@ -171,68 +171,6 @@ public sealed class PartRow
         Button.Visible = !done;
     }
 }
-
-public sealed class PlotCard
-{
-    public Control Root { get; }
-    private readonly Label _number;
-    private readonly Label _state;
-    private readonly MiniBar _bar;
-
-    public PlotCard(int index)
-    {
-        _number = UiTheme.Text((index + 1).ToString(), 10, Palette.Muted, Fonts.Display);
-        _state = UiTheme.Label("Vacío", 11, Palette.Suit);
-        _bar = new MiniBar { CustomMinimumSize = new Vector2(0, 4), FillColor = Palette.Food };
-
-        var body = UiTheme.VBox(3);
-        body.AddChild(_number);
-        body.AddChild(_state);
-        body.AddChild(_bar);
-
-        var panel = new PanelContainer { CustomMinimumSize = new Vector2(0, 64) };
-        var pad = UiTheme.Card(6);
-        panel.AddThemeStyleboxOverride("panel", pad);
-        panel.AddChild(body);
-        Root = panel;
-    }
-
-    public void Refresh(Plot plot, BalanceConfig balance)
-    {
-        _state.Text = plot.State switch
-        {
-            PlotState.Empty => "Vacío",
-            PlotState.Dry => "Sin regar",
-            PlotState.Grow => "Crece " + Math.Ceiling(plot.Time) + " s",
-            _ => "Lista",
-        };
-
-        _bar.Value = plot.State == PlotState.Grow
-            ? (1 - plot.Time / balance.GrowTime) * 100
-            : plot.State == PlotState.Ready ? 100 : 0;
-
-        var style = plot.State switch
-        {
-            PlotState.Dry => UiTheme.Box(Color.FromHtml("#2b1a12"), Palette.Water, 1),
-            PlotState.Ready => UiTheme.Box(Color.FromHtml("#26301a"), Palette.Food, 1),
-            _ => UiTheme.Box(Color.FromHtml("#2b1a12"), Palette.Line, 1),
-        };
-        var pad = UiTheme.Card(6);
-        style.ContentMarginLeft = pad.ContentMarginLeft;
-        style.ContentMarginRight = pad.ContentMarginRight;
-        style.ContentMarginTop = pad.ContentMarginTop;
-        style.ContentMarginBottom = pad.ContentMarginBottom;
-        ((PanelContainer)Root).AddThemeStyleboxOverride("panel", style);
-
-        _state.AddThemeColorOverride("font_color", plot.State switch
-        {
-            PlotState.Dry => Palette.Water,
-            PlotState.Ready => Palette.Food,
-            _ => Palette.Suit,
-        });
-    }
-}
-
 public sealed class RecipeRow
 {
     public Control Root { get; }

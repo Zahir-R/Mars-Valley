@@ -20,6 +20,7 @@ public sealed class StatsDrawer
     private readonly IconSwatch _foodIcon;
     private readonly Label _foodName;
     private readonly Label _foodCount;
+    private readonly Label _energy;
     private float _slide;
 
     public float Slide => _slide;
@@ -45,9 +46,18 @@ public sealed class StatsDrawer
         var foodCard = UiTheme.CardPanel(10);
         foodCard.AddChild(foodRow);
 
+        _energy = UiTheme.Label("Sin cúpulas", 12, Palette.Muted);
+
+        var energyCard = UiTheme.CardPanel(10);
+        var energyBox = UiTheme.VBox(2);
+        energyBox.AddChild(UiTheme.Label("Energía de la base", 11, Palette.Muted));
+        energyBox.AddChild(_energy);
+        energyCard.AddChild(energyBox);
+
         var body = UiTheme.VBox(10);
         body.AddChild(_vitals.Root);
         body.AddChild(foodCard);
+        body.AddChild(energyCard);
         Root = body;
 
         Icon = UiTheme.GhostButton("III", 12);
@@ -63,11 +73,34 @@ public sealed class StatsDrawer
         var target = IsOpen ? 1f : 0f;
         _slide = Mathf.MoveToward(_slide, target, (float)delta * 6f);
         Root.Visible = _slide > 0.001f;
+
+        // The edge icon is only useful while the drawer is closed.
+        Icon.Visible = !IsOpen;
     }
 
     public void Refresh()
     {
         _vitals.Refresh(_session);
+
+        var energy = 0.0;
+        var capacity = 0.0;
+        var panels = 0;
+        foreach (var dome in _session.State.Domes)
+        {
+            energy += dome.Energy;
+            capacity += dome.EnergyCapacity(_session.Balance);
+            panels += dome.PanelCount;
+        }
+        if (_session.State.Domes.Count == 0)
+        {
+            _energy.Text = "Sin cúpulas";
+            _energy.AddThemeColorOverride("font_color", Palette.Muted);
+        }
+        else
+        {
+            _energy.Text = $"{energy:0}/{capacity:0} · paneles {panels}";
+            _energy.AddThemeColorOverride("font_color", capacity > 0 && energy <= 0.5 ? Palette.Health : Palette.Muted);
+        }
 
         var src = _session.State.FoodSource;
         if (src == null || !_session.Items.TryGet(src, out var def))

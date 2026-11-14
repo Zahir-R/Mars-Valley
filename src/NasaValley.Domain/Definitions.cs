@@ -137,6 +137,11 @@ public sealed class ItemDatabase
             "Extrae depósitos de roca con eficacia.", Tags: new[] { "Herramienta", "Mineria" }),
         new ItemDefinition("pico_reforzado", "Pico reforzado", "#c9a13a", ItemCategory.Tool,
             "Pico con refuerzo de basalto; mina y excava.", Tags: new[] { "Herramienta", "Mineria", "Excavacion" }),
+
+        // --- structures -----------------------------------------------------
+        new ItemDefinition("cupula", "Cúpula almacenada", "#8fd3f4", ItemCategory.Structure,
+            "Cúpula de invernadero plegada. Colócala desde el inventario sin gastar materiales; al guardarla se pierde lo que hubiera dentro.",
+            Tags: new[] { "Estructura", "Dome" }),
     });
 }
 

@@ -14,9 +14,24 @@ public class EnvironmentAndDomesTests
 
     private static Dome BuildDome(GameSession session, float x = 300, float y = 120)
     {
+        ClearSceneObjects(session);
         foreach (var (item, amount) in session.Balance.DomeCost) session.State.Inventory[item] = amount;
         Assert.True(BuildSystem.TryBuild(session, x, y, out _));
         return session.State.Domes[^1];
+    }
+
+    private static void ClearSceneObjects(GameSession session)
+    {
+        session.State.Nodes.Clear();
+        session.State.Pickups.Clear();
+        session.State.Stations.Clear();
+    }
+
+    private static Plot AddFarm(GameSession session, Dome dome, int slot = 0)
+    {
+        foreach (var (item, amount) in session.Balance.FarmCost) session.State.Inventory[item] = amount;
+        Assert.True(BuildSystem.BuildFixture(session, dome, slot, FixtureKind.Farm, out var reason), reason);
+        return dome.Plots[^1];
     }
 
     [Fact]
@@ -39,15 +54,17 @@ public class EnvironmentAndDomesTests
     }
 
     [Fact]
-    public void BuildingADomeCreatesItsPlotSlots()
+    public void BuildingADomeCreatesEmptyInteriorSlotsNotFarms()
     {
         var session = NewSession();
 
         var dome = BuildDome(session);
 
         Assert.Single(session.State.Domes);
-        Assert.Equal(session.Balance.DomeSlotColumns * session.Balance.DomeSlotRows, session.State.Plots.Count);
-        Assert.All(session.State.Plots, p => Assert.Same(dome, p.Dome));
+        Assert.Empty(session.State.Plots);
+        Assert.Empty(dome.Fixtures);
+        Assert.True(DomeLayout.SlotCount(session.Balance) > 4);
+        Assert.True(dome.HasFreeSlot(DomeLayout.SlotCount(session.Balance)));
     }
 
     [Fact]
@@ -77,12 +94,11 @@ public class EnvironmentAndDomesTests
     public void ColdPausesGrowthUntilTheDomeWarms()
     {
         var session = NewSession();
-        BuildDome(session);
-        var plot = session.State.Plots[0];
+        var dome = BuildDome(session);
+        var plot = AddFarm(session, dome);
 
         new PlantCommand(plot, "tomate").Execute(session);
         new WaterCommand(plot).Execute(session);
-        var dome = plot.Dome!;
 
         dome.InternalTempC = 10;
         var before = plot.Time;
@@ -98,9 +114,9 @@ public class EnvironmentAndDomesTests
     public void PlantingUsesTheSelectedCrop()
     {
         var session = NewSession();
-        BuildDome(session);
+        var dome = BuildDome(session);
         session.SetCrop("tomate");
-        var plot = session.State.Plots[0];
+        var plot = AddFarm(session, dome);
 
         new InteractCommand(new PlotTarget(plot)).Execute(session);
 

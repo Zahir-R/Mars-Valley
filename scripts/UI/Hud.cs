@@ -1,4 +1,5 @@
 using Godot;
+using NasaValley.Core;
 using NasaValley.Domain;
 using NasaValley.Input;
 using NasaValley.Rendering;
@@ -19,14 +20,15 @@ public partial class Hud : Control
     private readonly LogPanel _log = new();
     private readonly ShipPanel _ship;
     private readonly WorkshopPanel _workshop;
-    private readonly FarmPanel _farm;
     private readonly GoalsPanel _goals;
+    private readonly DomePanel _dome;
     private readonly StatsDrawer _stats;
     private readonly TouchPad _pad;
     private readonly SubViewportContainer _viewport;
     private readonly GameFrame _frame;
     private readonly ModalHost _modal;
     private readonly HBoxContainer _topButtons;
+    private readonly MenuHost _menu;
 
     private double _uiTimer;
 
@@ -39,11 +41,11 @@ public partial class Hud : Control
         AddChild(_viewport);
         _viewport.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
 
-        _inventory = new InventoryPanel(session);
+        _inventory = new InventoryPanel(session, BuildDomeFromModal);
         _ship = new ShipPanel(session);
         _workshop = new WorkshopPanel(session);
-        _farm = new FarmPanel(session, BuildDomeFromModal);
         _goals = new GoalsPanel(session);
+        _dome = new DomePanel(session, CloseModal);
         _pad = new TouchPad(input, session.Eat);
         _stats = new StatsDrawer(session, ToggleStats);
 
@@ -59,6 +61,21 @@ public partial class Hud : Control
         _modal = new ModalHost { OnClosed = CloseModal };
         AddChild(_modal);
         _modal.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+
+        _menu = new MenuHost(session)
+        {
+            Continue = LoadAutosave,
+            NewGame = StartNewGame,
+            QuitToMenu = QuitToMenu,
+            Quit = QuitGame,
+            SaveSlotConfirmed = SaveCurrentSlot,
+            LoadSlotConfirmed = LoadCurrentSlot,
+            DeleteSlotConfirmed = DeleteSlot,
+        };
+        _menu.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        AddChild(_menu);
+
+        _frame.BackToMenuRequested += () => QuitToMenu();
 
         SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
 
@@ -111,6 +128,67 @@ public partial class Hud : Control
         _log.Rebuild(_session);
     }
 
+    public bool MenuOpen => _menu.Visible;
+
+    private void LoadAutosave()
+    {
+        if (SaveManager.TryLoad(_session, SaveSlots.Autosave, out var error))
+        {
+            _session.Say("Partida cargada.", MessageKind.Good);
+        }
+        else
+        {
+            _session.Say(error, MessageKind.Warn);
+        }
+
+        _menu.RefreshSlots();
+    }
+
+    private void StartNewGame() => _session.Reset();
+
+    private void SaveCurrentSlot(string slot)
+    {
+        if (SaveManager.SaveTo(_session, slot))
+        {
+            _session.Say($"Guardado en {SaveSlots.NameOf(slot)}.", MessageKind.Good);
+        }
+        else
+        {
+            _session.Say("No se pudo guardar la partida.", MessageKind.Warn);
+        }
+
+        _menu.RefreshSlots();
+    }
+
+    private void LoadCurrentSlot(string slot)
+    {
+        if (SaveManager.TryLoad(_session, slot, out var error))
+        {
+            _session.Say($"Partida cargada desde {SaveSlots.NameOf(slot)}.", MessageKind.Good);
+        }
+        else
+        {
+            _session.Say(error, MessageKind.Warn);
+        }
+
+        _menu.RefreshSlots();
+    }
+
+    private void DeleteSlot(string slot)
+    {
+        SaveManager.Delete(slot);
+        _menu.RefreshSlots();
+        _session.Say($"Ranura {SaveSlots.NameOf(slot)} borrada.", MessageKind.Info);
+    }
+
+    private void QuitToMenu()
+    {
+        SaveManager.SaveTo(_session, SaveSlots.Autosave);
+        _session.ReturnToMenu();
+    }
+
+    private void QuitGame() => GetTree().Quit();
+
     private void OnStateChanged() => _log.Rebuild(_session);
 
     private void OnPanelRequested(string id) => OpenPanel(id);
@@ -126,10 +204,10 @@ public partial class Hud : Control
         {
             "nave" => ("Nave", _ship.Root),
             "taller" => ("Taller", _workshop.Root),
-            "granja" => ("Granja", _farm.Root),
             "log" => ("Bitácora", _log.Root),
             "missions" => ("Objetivos", _goals.Root),
             "inventory" => ("Inventario", _inventory.Root),
+            "cupula" => ("Terminal de cúpula", _dome.Root),
             _ => (string.Empty, (Control)null!),
         };
         if (content == null) return;
@@ -163,8 +241,8 @@ public partial class Hud : Control
         _inventory.Refresh();
         _ship.Refresh();
         _workshop.Refresh();
-        _farm.Refresh();
         _goals.Refresh();
+        _dome.Refresh();
         _log.Rebuild(_session);
     }
 

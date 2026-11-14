@@ -4,11 +4,8 @@
     <EnableDynamicLoading>true</EnableDynamicLoading>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
-    <RootNamespace>NasaValley</RootNamespace>
   </PropertyGroup>
 
-  <!-- The engine assembly only owns Godot-facing code. Domain and tests are
-       separate .NET projects so they can be built and tested without Godot. -->
   <ItemGroup>
     <Compile Remove="src/**/*.cs" />
     <Compile Remove="tests/**/*.cs" />

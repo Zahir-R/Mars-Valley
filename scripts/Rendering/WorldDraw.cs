@@ -179,7 +179,7 @@ public static class WorldDraw
         }
     }
 
-    /// <summary>An interactable base station (workbench, farm console) with a soft beacon.</summary>
+    /// <summary>An interactable base station (workbench) with a soft beacon.</summary>
     public static void DrawStation(CanvasItem c, Station st, double clock)
     {
         var x = Mathf.Round(st.X);
@@ -200,12 +200,6 @@ public static class WorldDraw
                 Fill(c, x + 3, y - 12, 4, 5, Color.FromHtml("#d0a24c"));
                 Fill(c, x - 13, y + 6, 3, 6, Color.FromHtml("#4a3a35"));
                 Fill(c, x + 10, y + 6, 3, 6, Color.FromHtml("#4a3a35"));
-                break;
-            case StationKind.Farm:
-                Fill(c, x - 9, y - 14, 18, 18, Color.FromHtml("#2f3a2a"));
-                Fill(c, x - 6, y - 11, 12, 9, Color.FromHtml("#6fbf4a"));
-                Fill(c, x - 2, y - 8, 4, 4, Color.FromHtml("#a8e07a"));
-                Fill(c, x - 9, y + 4, 18, 4, Color.FromHtml("#3a2a1a"));
                 break;
             default:
                 Fill(c, x - 10, y - 12, 20, 16, Color.FromHtml("#2a3b3f"));
@@ -344,84 +338,6 @@ public static class WorldDraw
         }
     }
 
-    public static void DrawPlot(CanvasItem c, Plot p, BalanceConfig b, double clock)
-    {
-        var pl = b.PlotSize;
-        Fill(c, p.X, p.Y, pl, pl, Color.FromHtml("#3a2118"));
-        Fill(c, p.X + 2, p.Y + 2, pl - 4, pl - 4,
-            p.State is PlotState.Grow or PlotState.Ready ? Color.FromHtml("#2f1b13") : Color.FromHtml("#4a2a1d"));
-        for (var i = 0; i < 4; i++)
-            Fill(c, p.X + 4, p.Y + 8 + i * 8, pl - 8, 2, Color.FromHtml("#2c1810"));
-
-        if (p.State is PlotState.Grow or PlotState.Ready)
-            Fill(c, p.X + 2, p.Y + 2, pl - 4, pl - 4, new Color(74 / 255f, 163 / 255f, 224 / 255f, 0.14f));
-
-        var cx = p.X + pl / 2f;
-        var by = p.Y + pl - 8;
-
-        if (p.State == PlotState.Dry)
-        {
-            Fill(c, cx - 2, by - 3, 4, 4, Color.FromHtml("#c9a45a"));
-            if ((int)Mathf.Floor((float)clock * 2) % 2 != 0)
-            {
-                Fill(c, cx - 1, p.Y + 5, 3, 3, Palette.Water);
-                Fill(c, cx - 2, p.Y + 8, 5, 3, Palette.Water);
-            }
-        }
-        else if (p.State == PlotState.Grow)
-        {
-            var pr = 1 - (float)p.Time / (float)b.GrowTime;
-            var h = 4 + pr * 14;
-            var green = Color.FromHtml("#6fbf4a");
-            Fill(c, cx - 1, by - h, 3, h, green);
-            Fill(c, cx - 6, by - h + 2, 5, 3, green);
-            Fill(c, cx + 2, by - h + 5, 5, 3, green);
-        }
-        else if (p.State == PlotState.Ready)
-        {
-            var green = Color.FromHtml("#6fbf4a");
-            Fill(c, cx - 1, by - 20, 3, 20, green);
-            Fill(c, cx - 9, by - 18, 8, 4, green);
-            Fill(c, cx + 2, by - 14, 8, 4, green);
-            Fill(c, cx - 8, by - 9, 6, 3, green);
-            var potato = Color.FromHtml("#d9a05b");
-            Fill(c, cx - 9, by - 3, 6, 5, potato);
-            Fill(c, cx + 3, by - 2, 7, 5, potato);
-            Fill(c, cx - 2, by, 5, 4, potato);
-            var light = Color.FromHtml("#f2c98a");
-            Fill(c, cx - 8, by - 2, 2, 2, light);
-            Fill(c, cx + 5, by - 1, 2, 2, light);
-        }
-    }
-
-    public static void DrawFarm(CanvasItem c, GameState s, BalanceConfig b, double clock)
-    {
-        var gx = b.FarmX;
-        var gy = b.FarmY;
-        var gw = b.FarmWidth;
-        var gh = b.FarmHeight;
-
-        Fill(c, gx, gy, gw, gh, new Color(28 / 255f, 17 / 255f, 13 / 255f, 0.6f));
-        Fill(c, gx, gy, gw, gh, new Color(143 / 255f, 211 / 255f, 244 / 255f, 0.08f));
-        Stroke(c, gx + 1, gy + 1, gw - 2, gh - 2, Color.FromHtml("#8c8678"), 2);
-
-        var post = Color.FromHtml("#c9c3b4");
-        for (var i = 0; i <= gw; i += 33)
-        {
-            Fill(c, gx + i - 2, gy - 3, 4, 6, post);
-            Fill(c, gx + i - 2, gy + gh - 3, 4, 6, post);
-        }
-
-        foreach (var plot in s.Plots) DrawPlot(c, plot, b, clock);
-
-        var glass = new Color(1, 1, 1, 0.08f);
-        c.DrawLine(new Vector2(gx + 20, gy + gh), new Vector2(gx + 80, gy), glass, 6);
-        c.DrawLine(new Vector2(gx + 90, gy + gh), new Vector2(gx + 150, gy), glass, 6);
-
-        c.DrawString(Fonts.Display, new Vector2(gx + 4, gy - 8), "INVERNADERO",
-            HorizontalAlignment.Left, -1, 9, Color.FromHtml("#e8e2d4"));
-    }
-
     /// <summary>Translucent greenhouse dome covering its footprint.</summary>
     public static void DrawDome(CanvasItem c, Dome dome, BalanceConfig b)
     {
@@ -449,6 +365,25 @@ public static class WorldDraw
             c.DrawLine(poly[i], poly[(i + 1) % segments], rim, 2);
         }
         c.DrawLine(new Vector2(cx - rx, cy), new Vector2(cx + rx, cy), new Color(1, 1, 1, 0.12f), 1);
+    }
+
+    /// <summary>The small management console anchored below a dome.</summary>
+    public static void DrawDomeTerminal(CanvasItem c, Dome dome, BalanceConfig b)
+    {
+        var rim = Color.FromHtml("#8c8678");
+        var x = dome.CenterX - 13;
+        var y = dome.Y + dome.Height + 6;
+
+        Fill(c, dome.CenterX - 1, dome.Y + dome.Height - 2, 2, 9, rim.Darkened(0.25f));
+        Fill(c, x, y, 26, 14, Color.FromHtml("#241a16"));
+        Stroke(c, x, y, 26, 14, rim, 1);
+
+        var glow = dome.Energy > 0
+            ? new Color(143 / 255f, 211 / 255f, 244 / 255f, 0.55f)
+            : new Color(210 / 255f, 90 / 255f, 80 / 255f, 0.55f);
+        Fill(c, x + 3, y + 3, 20, 6, glow);
+        c.DrawString(Fonts.MonoWeight(600), new Vector2(x + 13, y + 12), "N" + dome.Level,
+            HorizontalAlignment.Center, -1, 7, Palette.Ink);
     }
 
     /// <summary>A single crop slot inside a dome, tinted by its plant and progress.</summary>
@@ -488,6 +423,66 @@ public static class WorldDraw
                 Fill(c, midX - 7, y + 6 + bob, 7, 5, col);
                 Fill(c, midX + 1, y + 2 + bob, 7, 5, col.Lightened(0.1f));
                 Fill(c, midX - 4, y - 1 + bob, 5, 4, col.Lightened(0.2f));
+                break;
+        }
+    }
+
+    /// <summary>An empty interior slot where the player can build a fixture.</summary>
+    public static void DrawDomeSlot(CanvasItem c, float x, float y, BalanceConfig b, bool highlighted)
+    {
+        var s = b.PlotSize;
+        var fill = new Color(143 / 255f, 211 / 255f, 244 / 255f, highlighted ? 0.14f : 0.05f);
+        var edge = highlighted
+            ? new Color(0.55f, 0.95f, 0.65f, 0.85f)
+            : new Color(0.55f, 0.65f, 0.62f, 0.35f);
+
+        Fill(c, x, y, s, s, fill);
+        DrawDashedRect(c, new Rect2(x, y, s, s), edge, 1, 4);
+
+        var cx = x + s / 2f;
+        var cy = y + s / 2f;
+        Fill(c, cx - 4, cy - 1, 8, 2, edge);
+        Fill(c, cx - 1, cy - 4, 2, 8, edge);
+    }
+
+    /// <summary>A utility placed on a dome slot (solar panel, battery or bunk).</summary>
+    public static void DrawFixture(CanvasItem c, Fixture fixture, float x, float y, BalanceConfig b, double clock)
+    {
+        var s = b.PlotSize;
+        Fill(c, x, y, s, s, Color.FromHtml("#241812"));
+        Stroke(c, x, y, s, s, Color.FromHtml("#4a3124"), 1);
+
+        switch (fixture.Kind)
+        {
+            case FixtureKind.SolarPanel:
+                Fill(c, x + 4, y + 6, s - 8, s - 12, Color.FromHtml("#1d3550"));
+                Stroke(c, x + 4, y + 6, s - 8, s - 12, Color.FromHtml("#4aa3e0"), 1);
+                for (var i = 1; i < 3; i++)
+                {
+                    Fill(c, x + 4 + i * (s - 8) / 3f, y + 6, 1, s - 12, Color.FromHtml("#4aa3e0"));
+                }
+                Fill(c, x + 4, y + s / 2f, s - 8, 1, Color.FromHtml("#4aa3e0"));
+                break;
+
+            case FixtureKind.Battery:
+                Fill(c, x + 7, y + 8, s - 14, s - 14, Color.FromHtml("#2d2a20"));
+                Stroke(c, x + 7, y + 8, s - 14, s - 14, Color.FromHtml("#d9c45a"), 1);
+                Fill(c, x + s / 2f - 3, y + 4, 6, 4, Color.FromHtml("#d9c45a"));
+                for (var i = 0; i < 3; i++)
+                {
+                    Fill(c, x + 10 + i * 4, y + s - 14, 2, 5, Color.FromHtml("#9ccf5a"));
+                }
+                break;
+
+            case FixtureKind.Bunk:
+                Fill(c, x + 4, y + 9, s - 8, s - 16, Color.FromHtml("#7a4b33"));
+                Stroke(c, x + 4, y + 9, s - 8, s - 16, Color.FromHtml("#c9a45a"), 1);
+                Fill(c, x + 6, y + 11, 7, s - 20, Color.FromHtml("#e8e2d4"));
+                Fill(c, x + 14, y + 11, s - 20, s - 20, Color.FromHtml("#2f5d7a"));
+                break;
+
+            default:
+                Fill(c, x + 6, y + 6, s - 12, s - 12, Color.FromHtml("#3a2a1e"));
                 break;
         }
     }

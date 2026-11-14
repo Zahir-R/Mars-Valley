@@ -126,6 +126,14 @@ public sealed class PlantCommand(Plot plot, string plantId) : IGameCommand
         var s = ctx.State;
         if (!ctx.Plants.TryGet(plantId, out var plant)) return;
 
+        // Crops can only be planted inside a dome's oxygen-safe footprint.
+        if (plot.Dome == null ||
+            !SafeZones.Contains(plot.Dome, plot.X + ctx.Balance.PlotSize / 2f, plot.Y + ctx.Balance.PlotSize / 2f))
+        {
+            ctx.Say("Solo puedes plantar dentro de una cúpula.", MessageKind.Warn);
+            return;
+        }
+
         if (s.Inventory["semillas"] < 1)
         {
             ctx.Say("No tienes semillas.", MessageKind.Warn);
@@ -177,6 +185,35 @@ public sealed class HarvestCommand(Plot plot) : IGameCommand
         plot.State = PlotState.Empty;
         ctx.Say($"Cosechas {plant.HarvestYield} {name.ToLowerInvariant()}" + (seed ? " y 1 semilla." : "."),
             MessageKind.Good);
+    }
+}
+
+public sealed class RestCommand(Dome dome) : IGameCommand
+{
+    public void Execute(IGameContext ctx)
+    {
+        var s = ctx.State;
+        var b = ctx.Balance;
+        if (!s.Running || s.Paused || s.Over) return;
+        if (!dome.HasBunk)
+        {
+            ctx.Say("No hay litera en esta cúpula.", MessageKind.Warn);
+            return;
+        }
+        if (s.RestCooldown > 0)
+        {
+            ctx.Say($"La litera aún no está lista ({Math.Ceiling(s.RestCooldown)} s).", MessageKind.Warn);
+            return;
+        }
+        if (s.Vitals.Energy >= 100)
+        {
+            ctx.Say("Ya tienes toda la energía.", MessageKind.Info);
+            return;
+        }
+
+        s.Vitals.Energy = Math.Min(100, s.Vitals.Energy + b.RestEnergyGain);
+        s.RestCooldown = b.RestCooldown;
+        ctx.Say($"Descansas en la litera: +{b.RestEnergyGain} energía.", MessageKind.Good);
     }
 }
 
@@ -243,6 +280,18 @@ public sealed class EatCommand : IGameCommand
     {
         var s = ctx.State;
         s.Inventory.Remove(foodId, 1);
+
+        // If the selected source just ran out, switch the displayed source automatically.
+        if (s.FoodSource == foodId && s.Inventory[foodId] <= 0)
+        {
+            string? next = null;
+            foreach (var id in Foods)
+            {
+                if (s.Inventory[id] > 0) { next = id; break; }
+            }
+            s.FoodSource = next;
+        }
+
         s.Vitals.Food = Math.Min(100, s.Vitals.Food + ctx.Balance.EatFoodGain);
         s.Vitals.Energy = Math.Min(100, s.Vitals.Energy + ctx.Balance.EatEnergyGain);
         ctx.Say($"Comes {ctx.Items[foodId].Name.ToLowerInvariant()}: +{ctx.Balance.EatFoodGain} alimento, +{ctx.Balance.EatEnergyGain} energía.",

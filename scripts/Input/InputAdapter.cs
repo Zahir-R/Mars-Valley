@@ -23,27 +23,64 @@ public sealed class InputAdapter
     public const string Build = "build";
     public const string Stats = "stats";
 
-    public static void RegisterActions()
-    {
-        Add(MoveUp, Key.W, Key.Up);
-        Add(MoveDown, Key.S, Key.Down);
-        Add(MoveLeft, Key.A, Key.Left);
-        Add(MoveRight, Key.D, Key.Right);
-        Add(Interact, Key.E);
-        Add(Eat, Key.F);
-        Add(Pause, Key.P, Key.Escape);
-        Add(Build, Key.B);
-        Add(Stats, Key.Tab);
-    }
+    public sealed record BindingDefinition(string Action, string Label, Key DefaultKey, Key[] SecondaryKeys);
 
-    private static void Add(string action, params Key[] keys)
+    /// <summary>Actions offered in the controls menu, in display order.</summary>
+    public static readonly IReadOnlyList<BindingDefinition> BindingDefinitions = new[]
     {
-        if (!InputMap.HasAction(action)) InputMap.AddAction(action);
-        foreach (var key in keys)
+        new BindingDefinition(MoveUp, "Mover arriba", Key.W, System.Array.Empty<Key>()),
+        new BindingDefinition(MoveDown, "Mover abajo", Key.S, System.Array.Empty<Key>()),
+        new BindingDefinition(MoveLeft, "Mover izquierda", Key.A, System.Array.Empty<Key>()),
+        new BindingDefinition(MoveRight, "Mover derecha", Key.D, System.Array.Empty<Key>()),
+        new BindingDefinition(Interact, "Interactuar", Key.E, System.Array.Empty<Key>()),
+        new BindingDefinition(Eat, "Comer", Key.F, System.Array.Empty<Key>()),
+        new BindingDefinition(Pause, "Pausa", Key.P, new[] { Key.Escape }),
+        new BindingDefinition(Build, "Construir cúpula", Key.B, System.Array.Empty<Key>()),
+        new BindingDefinition(Stats, "Estadísticas", Key.Tab, System.Array.Empty<Key>()),
+    };
+
+    public static void RegisterActions() => RegisterActions(null);
+
+    /// <summary>Registers every action, using custom bindings when present.</summary>
+    public static void RegisterActions(AppSettingsData? settings)
+    {
+        foreach (var binding in BindingDefinitions)
         {
-            InputMap.ActionAddEvent(action, new InputEventKey { PhysicalKeycode = key });
+            var action = binding.Action;
+            if (InputMap.HasAction(action)) InputMap.EraseAction(action);
+            InputMap.AddAction(action);
+
+            var primary = ResolveKey(settings, action, binding.DefaultKey);
+            InputMap.ActionAddEvent(action, new InputEventKey { PhysicalKeycode = (Key)primary });
+            foreach (var secondary in binding.SecondaryKeys)
+            {
+                InputMap.ActionAddEvent(action, new InputEventKey { PhysicalKeycode = secondary });
+            }
         }
     }
+
+    public static int ResolveKey(AppSettingsData? settings, string action, Key fallback)
+    {
+        if (settings?.Bindings.TryGetValue(action, out var code) == true && code != 0) return code;
+        return (int)fallback;
+    }
+
+    public static string DisplayBinding(AppSettingsData? settings, string action)
+    {
+        var code = ResolveKey(settings, action, DefaultKeyFor(action));
+        return OS.GetKeycodeString((Key)code);
+    }
+
+    public static int DefaultCodeFor(string action)
+    {
+        foreach (var binding in BindingDefinitions)
+        {
+            if (binding.Action == action) return (int)binding.DefaultKey;
+        }
+        return (int)Key.None;
+    }
+
+    private static Key DefaultKeyFor(string action) => (Key)DefaultCodeFor(action);
 
     public void SetVirtual(string action, bool down) => _virtualHeld[action] = down;
 
@@ -77,6 +114,8 @@ public sealed class InputAdapter
         _virtualHeld.Clear();
         _interactPressedVirtual = false;
     }
+
+    public static void RebuildFromSettings(AppSettingsData settings) => RegisterActions(settings);
 
     private bool Held(string action) =>
         Godot.Input.IsActionPressed(action) || _virtualHeld.GetValueOrDefault(action);

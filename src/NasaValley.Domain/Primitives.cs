@@ -23,7 +23,6 @@ public enum StationKind
 {
     Ship,
     Workbench,
-    Farm,
 }
 
 public enum PlotState

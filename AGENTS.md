@@ -45,8 +45,27 @@ Toolchain gotchas (hard-won, do not "fix"):
   `GameState.ModalOpen`, which makes `GameSession.Tick` early-return (frozen, flow stays `Playing`).
   Tab (or the left-edge icon) toggles the stats drawer; inventory is a categorized modal
   (`InventoryPanel`) driven by `ItemCategory`; the selected food source lives in `GameState.FoodSource`.
+- Domes: a dome is an **empty shell** with 12 interior slots; its footprint is an O₂-safe zone
+  (`SafeZones` in `Building.cs`). Farms and utilities are placed later on free slots with E —
+  either as the default farm or a fixture chosen in the `cupula` terminal (`DomePanel`):
+  `FixtureKind.Farm/SolarPanel/Battery/Bunk`. The terminal also upgrades/moves/stores/destroys.
+  Storing removes all interior contents and adds the `cupula` item, placeable without materials.
+- Occupancy: structures occupy footprint space but are not player obstacles (domes stay
+  walkable). Placement (`WorldOccupancy` in `src/NasaValley.Domain/WorldOccupancy.cs`) requires
+  the dome rectangle and the terminal below it to be clear of active veins, untaken pickups,
+  stations, the ship, and other domes/terminals. Depleted veins don't block placement, but
+  they cannot respawn while a structure occupies them.
+- Power (Fase 8): solar panels charge a dome's buffer, batteries raise its capacity, and a bunk
+  restores player energy with a cooldown. Energy totals are shown in the stats drawer and terminal.
+- Dev mode: typing `marscolonization` anywhere calls `GameSession.ToggleDevMode()` (all items +
+  accelerated crops); the phrase is captured in `GameBootstrap._Input`.
 - Composition root is `GameBootstrap`: builds `GameSession` + `Hud`, runs a fixed 1/60 tick.
   Discrete input (interact press) is consumed once per tick; see `scripts/Core/GameBootstrap.cs`.
+- Save/load: 1 autosave + 3 manual slots under `user://saves/` (`SaveManager`). `GameSession.CaptureSave`
+  snapshots the full dynamic state (vitals, inventory, domes/fixtures/plots, nodes, pickups,
+  repairs, storm, clock); `ApplySave` rebuilds the state and dome↔plot links. The start and pause
+  menus (`MenuHost`) expose Continuar / Nuevo juego / Cargar / Opciones (master volume + rebindable
+  keys in `user://settings.json`) / Salir; autosave fires every 60 s and on pause/focus/exit.
 - Domain code talks to the engine through `IGameContext` (commands/systems receive it).
   Keep new game logic in the domain; keep Godot calls in `scripts/`.
 - Rendering is procedural `_Draw` in `scripts/Rendering/WorldDraw.cs`, mirroring the original

@@ -66,14 +66,14 @@ public static class UiTheme
 
     public static Button PrimaryButton(string text, int fontSize = 13)
     {
-        var button = new Button { Text = text, FocusMode = Control.FocusModeEnum.All };
+        var button = new Button { Text = text, FocusMode = Control.FocusModeEnum.None };
         ApplyButton(button, Palette.Dust, Palette.Ink, Palette.DustDeep, fontSize);
         return button;
     }
 
     public static Button GhostButton(string text, int fontSize = 13)
     {
-        var button = new Button { Text = text, FocusMode = Control.FocusModeEnum.All };
+        var button = new Button { Text = text, FocusMode = Control.FocusModeEnum.None };
         var normal = Box(new Color(0, 0, 0, 0), Palette.Line, 1);
         normal.ContentMarginLeft = 14;
         normal.ContentMarginRight = 14;
@@ -97,7 +97,7 @@ public static class UiTheme
 
     public static Button SupportButton(string title, string subtitle)
     {
-        var button = new Button { Text = title, FocusMode = Control.FocusModeEnum.All };
+        var button = new Button { Text = title, FocusMode = Control.FocusModeEnum.None };
         var normal = Box(Palette.Panel2, Palette.Line, 1);
         Pad(normal, 10, 8);
         var hover = Box(Palette.Panel2, Palette.O2, 1);

@@ -35,17 +35,24 @@ public sealed class Plot
         Y = y;
     }
 
-    public float X { get; }
-    public float Y { get; }
+    public float X { get; private set; }
+    public float Y { get; private set; }
     public PlotState State { get; set; } = PlotState.Empty;
     public string PlantId { get; set; } = "papa";
     public double Time { get; set; }
     public Dome? Dome { get; set; }
+    public int SlotIndex { get; init; } = -1;
+
+    public void MoveTo(float x, float y)
+    {
+        X = x;
+        Y = y;
+    }
 }
 
 /// <summary>
-/// A built greenhouse. Holds several plot slots and an energy buffer that keeps the
-/// internal temperature at the target setpoint, offsetting the area's external cold.
+/// A built greenhouse shell. Its footprint is a breathable safe zone and it exposes a
+/// grid of empty interior slots where farms and utilities can be placed afterwards.
 /// </summary>
 public sealed class Dome
 {
@@ -59,17 +66,85 @@ public sealed class Dome
     }
 
     public int Id { get; }
-    public float X { get; }
-    public float Y { get; }
-    public float Width { get; }
-    public float Height { get; }
+    public float X { get; set; }
+    public float Y { get; set; }
+    public float Width { get; set; }
+    public float Height { get; set; }
+    public int Level { get; set; } = 1;
     public double Energy { get; set; }
     public double InternalTempC { get; set; }
     public double ExternalTempC { get; set; }
     public List<Plot> Plots { get; } = new();
+    public List<Fixture> Fixtures { get; } = new();
 
     public float CenterX => X + Width / 2f;
     public float CenterY => Y + Height / 2f;
+
+    /// <summary>Console below the dome that opens its management terminal.</summary>
+    public float TerminalX => CenterX;
+    public float TerminalY => Y + Height + 16f;
+
+    public int PanelCount => CountFixtures(FixtureKind.SolarPanel);
+    public int BatteryCount => CountFixtures(FixtureKind.Battery);
+    public int BunkCount => CountFixtures(FixtureKind.Bunk);
+
+    public bool HasBunk => BunkCount > 0;
+
+    public bool IsSlotOccupied(int slotIndex)
+    {
+        foreach (var plot in Plots)
+        {
+            if (plot.SlotIndex == slotIndex) return true;
+        }
+        foreach (var fixture in Fixtures)
+        {
+            if (fixture.SlotIndex == slotIndex) return true;
+        }
+        return false;
+    }
+
+    public bool HasFreeSlot(int slotCount)
+    {
+        for (var i = 0; i < slotCount; i++)
+        {
+            if (!IsSlotOccupied(i)) return true;
+        }
+        return false;
+    }
+
+    public double EnergyCapacity(BalanceConfig b) =>
+        (b.DomeBaseEnergy + BatteryCount * b.BatteryStorage) * Level;
+
+    private int CountFixtures(FixtureKind kind)
+    {
+        var count = 0;
+        foreach (var fixture in Fixtures)
+        {
+            if (fixture.Kind == kind) count++;
+        }
+        return count;
+    }
+}
+
+public enum FixtureKind
+{
+    Farm,
+    SolarPanel,
+    Battery,
+    Bunk,
+}
+
+/// <summary>A non-farm utility placed on one of a dome's interior slots.</summary>
+public sealed class Fixture
+{
+    public Fixture(FixtureKind kind, int slotIndex)
+    {
+        Kind = kind;
+        SlotIndex = slotIndex;
+    }
+
+    public FixtureKind Kind { get; }
+    public int SlotIndex { get; }
 }
 
 public sealed class ResourceNode
@@ -91,7 +166,7 @@ public sealed class ResourceNode
     public double Shake { get; set; }
 }
 
-/// <summary>An interactable base station (workbench, farm console, …) that opens a modal.</summary>
+/// <summary>An interactable base station (workbench) that opens a modal.</summary>
 public sealed class Station
 {
     public Station(StationKind kind, float x, float y)
@@ -204,6 +279,22 @@ public sealed class GameState
     public bool Building { get; set; }
     public float BuildX { get; set; }
     public float BuildY { get; set; }
+
+    /// <summary>When set, confirming placement relocates this dome instead of building a new one.</summary>
+    public int? MovingDomeId { get; set; }
+
+    /// <summary>Dome whose terminal modal is currently open.</summary>
+    public int? ActiveDomeId { get; set; }
+
+    /// <summary>Dev mode (typed combo): full inventory and accelerated crops.</summary>
+    public bool DevMode { get; set; }
+
+    /// <summary>Fixture chosen in a dome terminal, placed on the next empty slot pressed with E.</summary>
+    public FixtureKind? PendingFixture { get; set; }
+
+    /// <summary>Remaining rest cooldown (seconds) before a bunk can be used again.</summary>
+    public double RestCooldown { get; set; }
+
     public string SelectedCrop { get; set; } = "lechuga";
 
     /// <summary>Item id currently chosen as the food source (eaten first with F).</summary>

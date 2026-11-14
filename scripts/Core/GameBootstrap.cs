@@ -1,4 +1,5 @@
 using Godot;
+using NasaValley.Core;
 using NasaValley.Domain;
 using NasaValley.Input;
 using NasaValley.UI;
@@ -12,15 +13,20 @@ namespace NasaValley.Core;
 public partial class GameBootstrap : Node
 {
     private const double FixedStep = 1.0 / 60.0;
+    private const string DevPhrase = "marscolonization";
+    private const double AutosaveSeconds = 60.0;
 
     private GameSession _session = null!;
     private InputAdapter _input = null!;
     private Hud _hud = null!;
     private double _accumulator;
+    private double _autosaveTimer;
+    private string _typed = string.Empty;
 
     public override void _Ready()
     {
-        InputAdapter.RegisterActions();
+        InputAdapter.RegisterActions(SettingsService.Current);
+        SettingsService.ApplyAudio();
 
         _session = new GameSession();
         _input = new InputAdapter();
@@ -29,14 +35,70 @@ public partial class GameBootstrap : Node
         AddChild(_hud);
     }
 
+    /// <summary>Listens for the dev-mode phrase anywhere during a run (except in menus).</summary>
+    public override void _Input(InputEvent @event)
+    {
+        if (_hud?.MenuOpen == true) return;
+        if (@event is not InputEventKey { Pressed: true, Echo: false } key) return;
+
+        char ch;
+        if (key.Unicode != 0)
+        {
+            ch = (char)key.Unicode;
+        }
+        else if (key.Keycode >= Key.A && key.Keycode <= Key.Z)
+        {
+            ch = (char)('a' + ((int)key.Keycode - (int)Key.A));
+        }
+        else
+        {
+            return;
+        }
+
+        ch = char.ToLowerInvariant(ch);
+        if (ch < 'a' || ch > 'z') return;
+
+        _typed += ch;
+        if (_typed.Length > DevPhrase.Length) _typed = _typed.Substring(_typed.Length - DevPhrase.Length);
+
+        if (_typed != DevPhrase) return;
+
+        _typed = string.Empty;
+        _session.ToggleDevMode();
+    }
+
     public override void _Process(double delta)
     {
+        // Autosave while the run is active; a brand-new run is saved on first pause/exit.
+        if (_session.State.Running || _session.State.Paused)
+        {
+            _autosaveTimer += delta;
+            if (_autosaveTimer >= AutosaveSeconds)
+            {
+                _autosaveTimer = 0;
+                SaveManager.SaveTo(_session, SaveSlots.Autosave);
+            }
+        }
+        else
+        {
+            _autosaveTimer = 0;
+        }
 
         if (_input.PausePressed())
         {
             if (_session.State.ModalOpen) _hud.CloseModal();
             else if (_session.State.Building) _session.CancelBuild();
             else _session.TogglePause();
+
+            if (_session.State.Paused) SaveManager.SaveTo(_session, SaveSlots.Autosave);
+            return;
+        }
+
+        if (_hud.MenuOpen)
+        {
+            // A menu is open: the world is frozen; only the menu sees input.
+            _input.GetIntent();
+            _accumulator = 0;
             return;
         }
 
@@ -85,9 +147,18 @@ public partial class GameBootstrap : Node
             {
                 _session.TogglePause();
             }
+
+            if (_session.State.Paused)
+            {
+                SaveManager.SaveTo(_session, SaveSlots.Autosave);
+            }
         }
         else if (what == NotificationWMCloseRequest)
         {
+            if (_session.State.Running || _session.State.Paused)
+            {
+                SaveManager.SaveTo(_session, SaveSlots.Autosave);
+            }
             GetTree().Quit();
         }
     }
