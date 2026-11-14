@@ -1,0 +1,44 @@
+{
+  "region": "Gale Crater",
+  "bbox": {
+    "south": -8.0,
+    "north": -2.0,
+    "west": 133.0,
+    "east": 143.4
+  },
+  "grid": {
+    "width": 96,
+    "height": 56
+  },
+  "elevation_m": {
+    "min": -4913.0888671875,
+    "max": 1377.9383544921875
+  },
+  "sources": [
+    {
+      "name": "MGS MOLA MEGDR gridded topographic map (32 px/deg)",
+      "url": "https://pds-geosciences.wustl.edu/mgs/mgs-m-mola-5-megdr-l3-v1/mgsl_300x/meg032/megr90n000fb.lbl",
+      "doi": "10.17189/1520531"
+    },
+    {
+      "name": "MGS TES derived thermal inertia maps (20 px/deg)",
+      "url": "https://pds-geosciences.wustl.edu/mgs/mgs-m-tes-5-timap-v1/mgst_9001/data/global_ti_day_2007.lbl",
+      "doi": "10.17189/1518557"
+    },
+    {
+      "name": "2001 Mars Odyssey GRS gamma-ray spectrometer H2O concentration (2-degree bins)",
+      "url": "https://pds-geosciences.wustl.edu/ody/ody-m-grs-5-elements-v1/odgm_xxxx/data/unsmoothed/2x2/h2o_2x2.tab",
+      "doi": "10.17189/1518984"
+    },
+    {
+      "name": "NASA GSFC Mars OSSE / EMARS climatology (PSG Mars Explorer), MY32 Moderate dust",
+      "url": "https://psg.gsfc.nasa.gov/apps/mars/",
+      "doi": "10.1029/2022EA002253"
+    },
+    {
+      "name": "USGS Astrogeology",
+      "url": "https://astrogeology.usgs.gov/"
+    }
+  ],
+  "attribution": "NASA/JPL/GSFC/USGS/PDS. Data are used to drive gameplay; values simplified for gameplay."
+}
