@@ -1,0 +1,12 @@
+/home/zahir/GameDev/NASA/NasaValley/src/NasaValley.Domain/obj/Debug/net8.0/NasaValley.Domain.GeneratedMSBuildEditorConfig.editorconfig
+/home/zahir/GameDev/NASA/NasaValley/src/NasaValley.Domain/obj/Debug/net8.0/NasaValley.Domain.AssemblyInfoInputs.cache
+/home/zahir/GameDev/NASA/NasaValley/src/NasaValley.Domain/obj/Debug/net8.0/NasaValley.Domain.AssemblyInfo.cs
+/home/zahir/GameDev/NASA/NasaValley/src/NasaValley.Domain/obj/Debug/net8.0/NasaValley.Domain.csproj.CoreCompileInputs.cache
+/home/zahir/GameDev/NASA/NasaValley/src/NasaValley.Domain/obj/Debug/net8.0/NasaValley.Domain.sourcelink.json
+/home/zahir/GameDev/NASA/NasaValley/src/NasaValley.Domain/bin/Debug/net8.0/NasaValley.Domain.deps.json
+/home/zahir/GameDev/NASA/NasaValley/src/NasaValley.Domain/bin/Debug/net8.0/NasaValley.Domain.dll
+/home/zahir/GameDev/NASA/NasaValley/src/NasaValley.Domain/bin/Debug/net8.0/NasaValley.Domain.pdb
+/home/zahir/GameDev/NASA/NasaValley/src/NasaValley.Domain/obj/Debug/net8.0/NasaValley.Domain.dll
+/home/zahir/GameDev/NASA/NasaValley/src/NasaValley.Domain/obj/Debug/net8.0/refint/NasaValley.Domain.dll
+/home/zahir/GameDev/NASA/NasaValley/src/NasaValley.Domain/obj/Debug/net8.0/NasaValley.Domain.pdb
+/home/zahir/GameDev/NASA/NasaValley/src/NasaValley.Domain/obj/Debug/net8.0/ref/NasaValley.Domain.dll

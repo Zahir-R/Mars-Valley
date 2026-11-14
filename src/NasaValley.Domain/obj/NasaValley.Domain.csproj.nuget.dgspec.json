@@ -1,0 +1,64 @@
+{
+  "format": 1,
+  "restore": {
+    "/home/zahir/GameDev/NASA/NasaValley/src/NasaValley.Domain/NasaValley.Domain.csproj": {}
+  },
+  "projects": {
+    "/home/zahir/GameDev/NASA/NasaValley/src/NasaValley.Domain/NasaValley.Domain.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "/home/zahir/GameDev/NASA/NasaValley/src/NasaValley.Domain/NasaValley.Domain.csproj",
+        "projectName": "NasaValley.Domain",
+        "projectPath": "/home/zahir/GameDev/NASA/NasaValley/src/NasaValley.Domain/NasaValley.Domain.csproj",
+        "packagesPath": "/home/zahir/.nuget/packages/",
+        "outputPath": "/home/zahir/GameDev/NASA/NasaValley/src/NasaValley.Domain/obj/",
+        "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "/nix/store/q0ylrpfsiq5f8hx8r5rd42afxzyzk1c0-godot-mono-4.7.2-stable/share/nuget/packages/"
+        ],
+        "configFilePaths": [
+          "/home/zahir/.nuget/NuGet/NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0": {
+            "targetAlias": "net8.0",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/nix/store/na0vk678hk10ddzx5ndlrfyz349wzjb4-dotnet-sdk-8.0.131/share/dotnet/sdk/8.0.131/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}

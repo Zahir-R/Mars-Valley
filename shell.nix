@@ -11,7 +11,10 @@ pkgs.mkShell {
   packages = [
     combinedDotnet
     pkgs.csharp-ls
+    pkgs.godot-mono
   ];
   DOTNET_ROOT = "${combinedDotnet}/share/dotnet";
-  MSBuildSDKsPath = "${combinedDotnet}/share/dotnet/sdk/10.0.301/Sdks";
+  DOTNET_MULTILEVEL_LOOKUP = "0";
+  DOTNET_ROLL_FORWARD = "Minor";
+  GODOT = "${pkgs.godot-mono}/bin/godot-mono";
 }

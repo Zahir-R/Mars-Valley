@@ -1,0 +1,20 @@
+<Project Sdk="Godot.NET.Sdk/4.7.2">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>NasaValley</RootNamespace>
+  </PropertyGroup>
+
+  <!-- The engine assembly only owns Godot-facing code. Domain and tests are
+       separate .NET projects so they can be built and tested without Godot. -->
+  <ItemGroup>
+    <Compile Remove="src/**/*.cs" />
+    <Compile Remove="tests/**/*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="src/NasaValley.Domain/NasaValley.Domain.csproj" />
+  </ItemGroup>
+</Project>
