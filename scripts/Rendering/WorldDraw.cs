@@ -142,6 +142,27 @@ public static class WorldDraw
                 Fill(c, 4, 2, 4, 2, Color.FromHtml("#c0653a"));
                 Fill(c, -2, -6, 2, 2, Color.FromHtml("#c0653a"));
                 break;
+            case "rock":
+                Fill(c, -13, 2, 26, 10, Color.FromHtml("#5f574f"));
+                Fill(c, -10, -2, 10, 8, Color.FromHtml("#7d746a"));
+                Fill(c, 1, -4, 11, 9, Color.FromHtml("#8f867b"));
+                Fill(c, -8, -1, 5, 4, Color.FromHtml("#a49a8e"));
+                Fill(c, 4, 2, 4, 3, Color.FromHtml("#6a625a"));
+                break;
+            case "regolith":
+                Fill(c, -15, 4, 30, 7, Color.FromHtml("#7a4a30"));
+                Fill(c, -12, 0, 24, 6, Color.FromHtml("#a9704e"));
+                Fill(c, -8, -3, 16, 5, Color.FromHtml("#c08a62"));
+                Fill(c, -4, -5, 8, 4, Color.FromHtml("#d3a079"));
+                break;
+            case "basalt":
+                Fill(c, -14, 3, 28, 8, Color.FromHtml("#2f3338"));
+                Fill(c, -10, -8, 8, 12, Color.FromHtml("#4b525a"));
+                Fill(c, -1, -12, 7, 16, Color.FromHtml("#565e67"));
+                Fill(c, 7, -6, 6, 10, Color.FromHtml("#3d444b"));
+                Fill(c, -8, -6, 3, 6, Color.FromHtml("#6a737d"));
+                Fill(c, 0, -10, 2, 8, Color.FromHtml("#727c86"));
+                break;
             default:
                 Crystal(c, -7, 8, 12, 18, Palette.FromHex("#e8dcb5"), Palette.FromHex("#bfae82"));
                 Crystal(c, 7, 8, 12, 24, Palette.FromHex("#f3ead0"), Palette.FromHex("#cdbd92"));
@@ -156,6 +177,25 @@ public static class WorldDraw
         {
             Fill(c, Mathf.Round(n.X) - 9 + i * 5, Mathf.Round(n.Y) + 14, 3, 3, col);
         }
+    }
+
+    /// <summary>A loose item resting on the ground, gently bobbing with a soft glow.</summary>
+    public static void DrawPickup(CanvasItem c, Pickup p, ItemDefinition def, double clock)
+    {
+        var bob = Mathf.Sin((float)clock * 3f + p.X * 0.05f) * 2f;
+        var x = Mathf.Round(p.X);
+        var y = Mathf.Round(p.Y) + bob;
+        var col = Palette.FromHex(def.Color);
+
+        Fill(c, x - 8, p.Y + 4, 16, 4, new Color(0, 0, 0, 0.25f));
+
+        var glow = col;
+        glow.A = 0.18f;
+        c.DrawCircle(new Vector2(x, y), 12, glow);
+
+        Fill(c, x - 5, y - 5, 10, 10, col);
+        Fill(c, x - 3, y - 7, 6, 2, col.Lightened(0.3f));
+        Fill(c, x + 6, y - 10, 2, 2, Colors.White);
     }
 
     public static void DrawShip(CanvasItem c, GameState s, BalanceConfig b, double clock)

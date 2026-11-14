@@ -47,7 +47,7 @@ public partial class WorldView : Node2D
         WorldDraw.DrawFarm(this, s, b, clock);
         WorldDraw.DrawShip(this, s, b, clock);
 
-        DrawEntities(s);
+        DrawEntities(s, clock);
 
         if (s.Running && !s.Paused && !s.Over)
         {
@@ -59,9 +59,9 @@ public partial class WorldView : Node2D
         DrawWeather(s, b, clock);
     }
 
-    private void DrawEntities(GameState s)
+    private void DrawEntities(GameState s, double clock)
     {
-        var drawables = new List<(float Y, Action Draw)>(s.Nodes.Count + 1);
+        var drawables = new List<(float Y, Action Draw)>(s.Nodes.Count + s.Pickups.Count + 1);
 
         foreach (var node in s.Nodes)
         {
@@ -69,10 +69,16 @@ public partial class WorldView : Node2D
             drawables.Add((node.Y, () => WorldDraw.DrawNode(this, node, def)));
         }
 
+        foreach (var pickup in s.Pickups)
+        {
+            if (pickup.Taken) continue;
+            drawables.Add((pickup.Y + 6, () => WorldDraw.DrawPickup(this, pickup, Session.Items[pickup.ItemId], clock)));
+        }
+
         drawables.Add((s.Py + 12, () => WorldDraw.DrawAstronaut(this, s)));
         drawables.Sort((a, c) => a.Y.CompareTo(c.Y));
 
-        WorldDraw.DrawPlayerMarker(this, s, Time.GetTicksMsec() / 1000.0);
+        WorldDraw.DrawPlayerMarker(this, s, clock);
         foreach (var (_, draw) in drawables) draw();
     }
 

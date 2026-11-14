@@ -15,25 +15,31 @@ public sealed class MineNodeCommand(ResourceNode node) : IGameCommand
         var def = ctx.Nodes[node.Type];
         var item = ctx.Items[def.ItemId];
 
-        node.Amount--;
-        node.Shake = b.NodeShakeTime;
-        s.Inventory.Add(item.Id, 1);
-        if (item.Id == "hielo") s.Stats.Ice++;
-        s.Vitals.Energy = Math.Max(0, s.Vitals.Energy - b.MineEnergyCost);
+        if (node.Amount <= 0) return;
 
-        for (var i = 0; i < 5; i++)
+        if (!ctx.HasToolTag(def.RequiredToolTag))
         {
-            s.Particles.Add(new Particle
-            {
-                X = node.X + ((float)ctx.Rng.NextDouble() - 0.5f) * 14,
-                Y = node.Y + ((float)ctx.Rng.NextDouble() - 0.5f) * 8,
-                Vx = ((float)ctx.Rng.NextDouble() - 0.5f) * 60,
-                Vy = -20 - (float)ctx.Rng.NextDouble() * 40,
-                Life = 0.5,
-                Color = def.Color,
-            });
+            ctx.Say($"Necesitas una herramienta adecuada para extraer {item.Name.ToLowerInvariant()}.",
+                MessageKind.Warn);
+            return;
         }
 
+        node.Shake = b.NodeShakeTime;
+        s.Vitals.Energy = Math.Max(0, s.Vitals.Energy - b.MineEnergyCost);
+        node.Progress++;
+
+        if (node.Progress < def.HitsPerUnit)
+        {
+            SpawnParticles(ctx, node, def.Color, 2);
+            return;
+        }
+
+        node.Progress = 0;
+        node.Amount--;
+        s.Inventory.Add(item.Id, 1);
+        if (item.Id == "hielo") s.Stats.Ice++;
+
+        SpawnParticles(ctx, node, def.Color, 5);
         s.Floats.Add(new FloatingText
         {
             X = node.X,
@@ -48,6 +54,68 @@ public sealed class MineNodeCommand(ResourceNode node) : IGameCommand
             node.Regen = b.NodeRegenTime;
             ctx.Say($"Depósito de {item.Name.ToLowerInvariant()} agotado. Se regenera en unos {b.NodeRegenTime:0} s.");
         }
+    }
+
+    private static void SpawnParticles(IGameContext ctx, ResourceNode node, string color, int count)
+    {
+        var s = ctx.State;
+        for (var i = 0; i < count; i++)
+        {
+            s.Particles.Add(new Particle
+            {
+                X = node.X + ((float)ctx.Rng.NextDouble() - 0.5f) * 14,
+                Y = node.Y + ((float)ctx.Rng.NextDouble() - 0.5f) * 8,
+                Vx = ((float)ctx.Rng.NextDouble() - 0.5f) * 60,
+                Vy = -20 - (float)ctx.Rng.NextDouble() * 40,
+                Life = 0.5,
+                Color = color,
+            });
+        }
+    }
+}
+
+public sealed class PickupCommand(Pickup pickup) : IGameCommand
+{
+    public void Execute(IGameContext ctx)
+    {
+        var s = ctx.State;
+        if (pickup.Taken) return;
+
+        var def = ctx.Items[pickup.ItemId];
+        s.Inventory.Add(pickup.ItemId, pickup.Amount);
+        pickup.Taken = true;
+
+        s.Floats.Add(new FloatingText
+        {
+            X = pickup.X,
+            Y = pickup.Y - 22,
+            Text = "+" + pickup.Amount + " " + def.Name,
+            Color = def.Color,
+            Life = 0.9,
+        });
+        ctx.Say($"Recoges {pickup.Amount} {def.Name.ToLowerInvariant()}.", MessageKind.Good);
+    }
+}
+
+public sealed class CraftCommand(RecipeDefinition recipe) : IGameCommand
+{
+    public void Execute(IGameContext ctx)
+    {
+        var s = ctx.State;
+        if (!s.Running || s.Paused || s.Over) return;
+
+        foreach (var (item, amount) in recipe.Ingredients)
+        {
+            if (s.Inventory.Has(item, amount)) continue;
+            ctx.Say($"Faltan materiales para {recipe.Name}.", MessageKind.Warn);
+            return;
+        }
+
+        foreach (var (item, amount) in recipe.Ingredients) s.Inventory.Remove(item, amount);
+        s.Inventory.Add(recipe.OutputItemId, recipe.OutputAmount);
+
+        var name = ctx.Items.TryGet(recipe.OutputItemId, out var def) ? def.Name : recipe.OutputItemId;
+        ctx.Say($"Fabricado: {name}.", MessageKind.Good);
     }
 }
 
@@ -186,6 +254,9 @@ public sealed class InteractCommand(InteractionTarget target) : IGameCommand
     {
         switch (target)
         {
+            case PickupTarget pk:
+                new PickupCommand(pk.Pickup).Execute(ctx);
+                break;
             case PlotTarget pt:
                 switch (pt.Plot.State)
                 {

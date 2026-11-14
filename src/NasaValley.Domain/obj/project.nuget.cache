@@ -1,8 +1,11 @@
 {
   "version": 2,
-  "dgSpecHash": "BFrwvF7Bh9UWhxbtdYlDRduXJYSIVlDTAe0bVqYAFcM41u336nM9UcSGdj1HtoJZvcqexknir9Hl+8OK4jbwfw==",
+  "dgSpecHash": "aIM7AqF6wQA=",
   "success": true,
   "projectFilePath": "/home/zahir/GameDev/NASA/NasaValley/src/NasaValley.Domain/NasaValley.Domain.csproj",
-  "expectedPackageFiles": [],
+  "expectedPackageFiles": [
+    "/home/zahir/.nuget/packages/microsoft.netcore.app.ref/8.0.31/microsoft.netcore.app.ref.8.0.31.nupkg.sha512",
+    "/home/zahir/.nuget/packages/microsoft.aspnetcore.app.ref/8.0.31/microsoft.aspnetcore.app.ref.8.0.31.nupkg.sha512"
+  ],
   "logs": []
 }

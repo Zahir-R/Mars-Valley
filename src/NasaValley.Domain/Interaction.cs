@@ -6,6 +6,8 @@ public sealed record NodeTarget(ResourceNode Node) : InteractionTarget;
 
 public sealed record PlotTarget(Plot Plot) : InteractionTarget;
 
+public sealed record PickupTarget(Pickup Pickup) : InteractionTarget;
+
 public sealed record ShipTarget : InteractionTarget;
 
 /// <summary>
@@ -50,6 +52,17 @@ public static class InteractionSystem
             }
         }
 
+        foreach (var p in s.Pickups)
+        {
+            if (p.Taken) continue;
+            var d = Distance(p.X, p.Y, s.Px, s.Py);
+            if (d < b.PickupInteractRadius && d < bestDistance)
+            {
+                bestDistance = d;
+                best = new PickupTarget(p);
+            }
+        }
+
         var shipDistance = ShipDistance(s, b);
         if (shipDistance < b.ShipTargetRadius && shipDistance < bestDistance)
         {
@@ -67,8 +80,17 @@ public static class InteractionSystem
         switch (target)
         {
             case NodeTarget nt:
-                var item = ctx.Items[ctx.Nodes[nt.Node.Type].ItemId];
+                var nodeDef = ctx.Nodes[nt.Node.Type];
+                var item = ctx.Items[nodeDef.ItemId];
+                if (!ctx.HasToolTag(nodeDef.RequiredToolTag))
+                {
+                    return $"Necesitas herramienta para extraer {item.Name.ToLowerInvariant()}";
+                }
                 return $"Extraer {item.Name.ToLowerInvariant()} ({nt.Node.Amount} restantes)";
+
+            case PickupTarget pt:
+                var pickupDef = ctx.Items[pt.Pickup.ItemId];
+                return $"Recoger {pickupDef.Name.ToLowerInvariant()} ({pt.Pickup.Amount})";
 
             case ShipTarget:
                 return "Abrir panel de la nave";

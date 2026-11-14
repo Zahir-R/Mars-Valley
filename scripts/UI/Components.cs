@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Godot;
 using NasaValley.Domain;
 using NasaValley.Rendering;
@@ -229,6 +230,65 @@ public sealed class PlotCard
             PlotState.Ready => Palette.Food,
             _ => Palette.Suit,
         });
+    }
+}
+
+public sealed class RecipeRow
+{
+    public Control Root { get; }
+    public Button Button { get; }
+    private readonly RecipeDefinition _recipe;
+    private readonly List<(string Item, int Amount, Label Label)> _costs = new();
+
+    public RecipeRow(RecipeDefinition recipe, GameSession session)
+    {
+        _recipe = recipe;
+
+        var title = UiTheme.Text(recipe.Name, 13, Palette.Suit, Fonts.SansWeight(600));
+        var desc = UiTheme.Label(recipe.Description, 12, Palette.Muted);
+        desc.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+
+        var costs = UiTheme.HBox(12);
+        foreach (var (item, amount) in recipe.Ingredients)
+        {
+            var def = session.Items[item];
+            var chip = UiTheme.HBox(5);
+            chip.AddChild(new ColorRect { Color = Palette.FromHex(def.Color), CustomMinimumSize = new Vector2(12, 12) });
+            var label = UiTheme.Text($"{def.Name} 0/{amount}", 12, Palette.Health, Fonts.Mono);
+            chip.AddChild(label);
+            costs.AddChild(chip);
+            _costs.Add((item, amount, label));
+        }
+
+        Button = UiTheme.PrimaryButton("Fabricar");
+        Button.SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin;
+        Button.Pressed += () => session.Craft(recipe.Id);
+
+        var body = UiTheme.VBox(6);
+        body.AddChild(title);
+        body.AddChild(desc);
+        body.AddChild(costs);
+        body.AddChild(Button);
+
+        var panel = new PanelContainer();
+        panel.AddThemeStyleboxOverride("panel", UiTheme.Card(10));
+        panel.AddChild(body);
+        Root = panel;
+    }
+
+    public void Refresh(GameSession session)
+    {
+        var ok = true;
+        foreach (var (item, amount, label) in _costs)
+        {
+            var have = session.State.Inventory[item];
+            label.Text = $"{session.Items[item].Name} {Math.Min(have, amount)}/{amount}";
+            label.AddThemeColorOverride("font_color", have >= amount ? Palette.Food : Palette.Health);
+            if (have < amount) ok = false;
+        }
+
+        Button.Disabled = !ok;
+        Button.Text = ok ? "Fabricar" : "Faltan materiales";
     }
 }
 

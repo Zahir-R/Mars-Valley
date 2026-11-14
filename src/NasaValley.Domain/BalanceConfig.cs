@@ -44,6 +44,7 @@ public sealed class BalanceConfig
     // Interaction radii
     public float NodeInteractRadius { get; init; } = 46f;
     public float PlotInteractRadius { get; init; } = 34f;
+    public float PickupInteractRadius { get; init; } = 40f;
     public float ShipTargetRadius { get; init; } = 40f;
     public float ShipNearRadius { get; init; } = 48f;
 
@@ -99,6 +100,7 @@ public sealed class BalanceConfig
     public int StartWater { get; init; } = 2;
     public int StartSeeds { get; init; } = 4;
     public int StartPotatoes { get; init; } = 1;
+    public int StartFijaciones { get; init; } = 2;
     public int StartO2 { get; init; } = 100;
     public int StartEnergy { get; init; } = 80;
     public int StartFood { get; init; } = 70;

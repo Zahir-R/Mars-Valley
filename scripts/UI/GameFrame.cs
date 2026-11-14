@@ -32,7 +32,7 @@ public partial class GameFrame : Control
 
     public override void _Ready()
     {
-        SetAnchorsPreset(LayoutPreset.FullRect);
+        SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
         MouseFilter = MouseFilterEnum.Pass;
     }
 
@@ -54,14 +54,18 @@ public partial class GameFrame : Control
         _banner.AddChild(_bannerLabel);
 
         // --- toasts -----------------------------------------------------------
+        // Top-right, up to 48% wide, growing downward; mirrors `.toasts` in the CSS.
         _toasts = UiTheme.VBox(6);
-        _toasts.Alignment = BoxContainer.AlignmentMode.End;
-        _toasts.AnchorLeft = 1;
-        _toasts.AnchorRight = 1;
+        _toasts.Alignment = BoxContainer.AlignmentMode.Begin;
+        _toasts.AnchorLeft = 0.52f;
+        _toasts.AnchorRight = 1f;
+        _toasts.AnchorTop = 0f;
+        _toasts.AnchorBottom = 0f;
         _toasts.OffsetLeft = -10;
         _toasts.OffsetRight = -10;
         _toasts.OffsetTop = 10;
-        _toasts.GrowHorizontal = GrowDirection.Begin;
+        _toasts.GrowHorizontal = GrowDirection.Both;
+        _toasts.GrowVertical = GrowDirection.End;
         _toasts.MouseFilter = MouseFilterEnum.Ignore;
 
         // --- prompt -----------------------------------------------------------
@@ -78,9 +82,9 @@ public partial class GameFrame : Control
         (_endCard, _endEyebrow, _endTitle, _endText) = BuildEndCard();
 
         _cardLayer = new Control { MouseFilter = MouseFilterEnum.Stop };
-        _cardLayer.SetAnchorsPreset(LayoutPreset.FullRect);
+        _cardLayer.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
         var center = new CenterContainer();
-        center.SetAnchorsPreset(LayoutPreset.FullRect);
+        center.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
         center.AddChild(_startCard);
         center.AddChild(_pauseCard);
         center.AddChild(_endCard);
@@ -93,7 +97,7 @@ public partial class GameFrame : Control
         AddChild(_prompt);
         AddChild(_cardLayer);
 
-        foreach (var overlay in new Control[] { _chip, _banner, _toasts, _prompt, _cardLayer })
+        foreach (var overlay in new Control[] { _chip, _banner, _prompt, _cardLayer })
         {
             overlay.TopLevel = true;
         }
@@ -270,20 +274,29 @@ public partial class GameFrame : Control
     public void OnMessage(string text, MessageKind kind)
     {
         var label = UiTheme.Label(text, 12, Palette.Suit);
+        var naturalW = label.GetMinimumSize().X;
+        var vpW = GetViewportRect().Size.X;
+        if (vpW <= 0) vpW = 768;
+        var maxW = Mathf.Max(140f, vpW * 0.48f - 26f);
         label.AutowrapMode = TextServer.AutowrapMode.WordSmart;
-        var panel = new PanelContainer();
-        var border = kind switch
+        label.CustomMinimumSize = new Vector2(Mathf.Min(naturalW, maxW), 0);
+        var accent = kind switch
         {
             MessageKind.Warn => Palette.Energy,
             MessageKind.Good => Palette.Food,
             _ => Palette.O2,
         };
-        var style = UiTheme.Box(new Color(21 / 255f, 15 / 255f, 13 / 255f, 0.92f), Palette.Line, 1);
+        var style = UiTheme.Box(new Color(21 / 255f, 15 / 255f, 13 / 255f, 0.92f), accent, 1);
+        style.BorderWidthLeft = 3;
         UiTheme.Pad(style, 10, 6);
+        var panel = new PanelContainer
+        {
+            MouseFilter = MouseFilterEnum.Ignore,
+            SizeFlagsHorizontal = SizeFlags.ShrinkEnd,
+            Modulate = new Color(1, 1, 1, 0),
+        };
         panel.AddThemeStyleboxOverride("panel", style);
         panel.AddChild(label);
-        panel.MouseFilter = MouseFilterEnum.Ignore;
-        panel.Modulate = new Color(1, 1, 1, 0);
 
         _toasts.AddChild(panel);
         _toastList.Add(panel);

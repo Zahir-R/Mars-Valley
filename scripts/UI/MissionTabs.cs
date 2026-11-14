@@ -17,6 +17,7 @@ public sealed class MissionTabs
     private readonly ShipPanel _ship;
     private readonly FarmPanel _farm;
     private readonly GoalsPanel _goals;
+    private readonly WorkshopPanel _workshop;
     private string _active = "nave";
 
     public MissionTabs(GameSession session)
@@ -25,7 +26,7 @@ public sealed class MissionTabs
 
         var tabs = UiTheme.HBox(0);
         tabs.AddThemeConstantOverride("separation", 0);
-        foreach (var (id, label) in new[] { ("nave", "Nave"), ("granja", "Granja"), ("misiones", "Misiones") })
+        foreach (var (id, label) in new[] { ("nave", "Nave"), ("granja", "Granja"), ("taller", "Taller"), ("misiones", "Misiones") })
         {
             var button = new Button { Text = label };
             button.AddThemeFontOverride("font", Fonts.Display);
@@ -38,8 +39,10 @@ public sealed class MissionTabs
         _ship = new ShipPanel(session);
         _farm = new FarmPanel(session);
         _goals = new GoalsPanel(session);
+        _workshop = new WorkshopPanel(session);
         _panels["nave"] = _ship.Root;
         _panels["granja"] = _farm.Root;
+        _panels["taller"] = _workshop.Root;
         _panels["misiones"] = _goals.Root;
 
         var box = UiTheme.VBox(14);
@@ -83,7 +86,50 @@ public sealed class MissionTabs
     {
         _ship.Refresh();
         _farm.Refresh();
+        _workshop.Refresh();
         _goals.Refresh();
+    }
+}
+
+/// <summary>Manual workbench: lists every recipe with its live material status.</summary>
+public sealed class WorkshopPanel
+{
+    public Control Root { get; }
+
+    private readonly GameSession _session;
+    private readonly List<RecipeRow> _rows = new();
+
+    public WorkshopPanel(GameSession session)
+    {
+        _session = session;
+
+        var list = UiTheme.VBox(8);
+        foreach (var recipe in session.Recipes.Recipes)
+        {
+            var row = new RecipeRow(recipe, session);
+            _rows.Add(row);
+            list.AddChild(row.Root);
+        }
+
+        var hint = UiTheme.Label(
+            "Extrae roca a mano. El regolito necesita una pala y el basalto un martillo o un pico. Recoge objetos sueltos junto a la nave.",
+            12, Palette.Muted);
+        hint.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+
+        var body = UiTheme.VBox(12);
+        body.AddChild(UiTheme.Caption("Taller manual"));
+        body.AddChild(hint);
+        body.AddChild(list);
+
+        var panel = new PanelContainer();
+        panel.AddThemeStyleboxOverride("panel", UiTheme.Card(14));
+        panel.AddChild(body);
+        Root = panel;
+    }
+
+    public void Refresh()
+    {
+        foreach (var row in _rows) row.Refresh(_session);
     }
 }
 

@@ -13,9 +13,6 @@
         "packagesPath": "/home/zahir/.nuget/packages/",
         "outputPath": "/home/zahir/GameDev/NASA/NasaValley/src/NasaValley.Domain/obj/",
         "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "/nix/store/q0ylrpfsiq5f8hx8r5rd42afxzyzk1c0-godot-mono-4.7.2-stable/share/nuget/packages/"
-        ],
         "configFilePaths": [
           "/home/zahir/.nuget/NuGet/NuGet.Config"
         ],
@@ -23,10 +20,12 @@
           "net8.0"
         ],
         "sources": {
+          "/nix/store/b8lqbpbgy4lyp46dwxks5x5i8mrvc806-dotnet-sdk-10.0.401/share/dotnet/library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
           "net8.0": {
+            "framework": "net8.0",
             "targetAlias": "net8.0",
             "projectReferences": {}
           }
@@ -35,10 +34,17 @@
           "warnAsError": [
             "NU1605"
           ]
-        }
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        },
+        "SdkAnalysisLevel": "10.0.400"
       },
       "frameworks": {
         "net8.0": {
+          "framework": "net8.0",
           "targetAlias": "net8.0",
           "imports": [
             "net461",
@@ -51,12 +57,22 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
+          "downloadDependencies": [
+            {
+              "name": "Microsoft.AspNetCore.App.Ref",
+              "version": "[8.0.31, 8.0.31]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Ref",
+              "version": "[8.0.31, 8.0.31]"
+            }
+          ],
           "frameworkReferences": {
             "Microsoft.NETCore.App": {
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/nix/store/na0vk678hk10ddzx5ndlrfyz349wzjb4-dotnet-sdk-8.0.131/share/dotnet/sdk/8.0.131/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "/nix/store/b8lqbpbgy4lyp46dwxks5x5i8mrvc806-dotnet-sdk-10.0.401/share/dotnet/sdk/10.0.401/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

@@ -1,8 +1,51 @@
 namespace NasaValley.Domain;
 
-public sealed record ItemDefinition(string Id, string Name, string Color);
+/// <summary>Broad class of an item, used to drive behaviour without per-item classes.</summary>
+public enum ItemCategory
+{
+    NaturalResource,
+    Processed,
+    Component,
+    Tool,
+    Consumable,
+    Equipment,
+    Seed,
+    Structure,
+    MissionItem,
+}
 
-public sealed record NodeDefinition(string Type, string ItemId, string Color);
+/// <summary>
+/// Data-driven item definition. Behaviour is derived from <see cref="Category"/> and
+/// <see cref="Tags"/> so new materials never need their own class.
+/// </summary>
+public sealed record ItemDefinition(
+    string Id,
+    string Name,
+    string Color,
+    ItemCategory Category = ItemCategory.NaturalResource,
+    string Description = "",
+    bool Stackable = true,
+    int MaxStack = 99,
+    IReadOnlyList<string>? Tags = null)
+{
+    public IReadOnlyList<string> TagList => Tags ?? Array.Empty<string>();
+
+    public bool IsTool => Category == ItemCategory.Tool;
+
+    public bool HasTag(string tag) => TagList.Contains(tag);
+}
+
+/// <summary>
+/// A resource node type. <see cref="RequiredToolTag"/> is the capability needed to
+/// harvest it (null means bare hands). <see cref="HitsPerUnit"/> is the number of
+/// hits required to yield a single unit.
+/// </summary>
+public sealed record NodeDefinition(
+    string Type,
+    string ItemId,
+    string Color,
+    string? RequiredToolTag = null,
+    int HitsPerUnit = 1);
 
 public sealed record PartDefinition(
     string Id,
@@ -25,6 +68,9 @@ public sealed record MissionGoal(string Text, GoalKind Kind, int Target);
 
 public sealed record NodeSpawn(string Type, float X, float Y);
 
+/// <summary>A loose item lying in the world that can be picked up directly.</summary>
+public sealed record PickupSpawn(string ItemId, int Amount, float X, float Y);
+
 /// <summary>Lookup table for items; acts as a flyweight so definitions are shared.</summary>
 public sealed class ItemDatabase
 {
@@ -42,14 +88,47 @@ public sealed class ItemDatabase
     public ItemDefinition this[string id] => _byId[id];
     public bool TryGet(string id, out ItemDefinition def) => _byId.TryGetValue(id, out def!);
 
+    public IEnumerable<ItemDefinition> Tools => Items.Where(i => i.IsTool);
+
     public static ItemDatabase CreateDefault() => new(new[]
     {
-        new ItemDefinition("hielo", "Hielo", "#8fd3f4"),
-        new ItemDefinition("agua", "Agua", "#4aa3e0"),
-        new ItemDefinition("hierro", "Hierro", "#a6806f"),
-        new ItemDefinition("silicio", "Silicio", "#e0d2a8"),
-        new ItemDefinition("semillas", "Semillas", "#c9a45a"),
-        new ItemDefinition("papas", "Papas", "#d9a05b"),
+        // --- existing survival resources -----------------------------------
+        new ItemDefinition("hielo", "Hielo", "#8fd3f4", ItemCategory.NaturalResource,
+            "Agua congelada bajo la superficie; fuente de agua y oxígeno.", Tags: new[] { "Mineral", "Agua" }),
+        new ItemDefinition("agua", "Agua", "#4aa3e0", ItemCategory.Processed,
+            "Agua fundida y tratada para cultivos y soporte vital.", Tags: new[] { "Agua" }),
+        new ItemDefinition("hierro", "Hierro", "#a6806f", ItemCategory.NaturalResource,
+            "Mineral de óxido de hierro para piezas resistentes.", Tags: new[] { "Mineral", "Metal" }),
+        new ItemDefinition("silicio", "Silicio", "#e0d2a8", ItemCategory.NaturalResource,
+            "Compuesto silicatado usado en vidrio y electrónica.", Tags: new[] { "Mineral" }),
+        new ItemDefinition("semillas", "Semillas", "#c9a45a", ItemCategory.Seed,
+            "Semillas de papa para el invernadero.", Tags: new[] { "Cultivo" }),
+        new ItemDefinition("papas", "Papas", "#d9a05b", ItemCategory.Consumable,
+            "Alimento cultivado en el invernadero.", Tags: new[] { "Comida" }),
+
+        // --- raw geology (Fase 2/3) ----------------------------------------
+        new ItemDefinition("roca", "Fragmentos de roca", "#9a8f86", ItemCategory.NaturalResource,
+            "Trozos sueltos de roca marciana. Base de la fabricación manual.", Tags: new[] { "Mineral", "Roca" }),
+        new ItemDefinition("regolito", "Regolito", "#b98c6a", ItemCategory.NaturalResource,
+            "Polvo y arena de la superficie. No es tierra fértil.", Tags: new[] { "Mineral", "Superficie" }),
+        new ItemDefinition("basalto", "Basalto", "#5b5f66", ItemCategory.NaturalResource,
+            "Roca volcánica dura rica en silicatos.", Tags: new[] { "Mineral", "Roca" }),
+
+        // --- recovered / processed components ------------------------------
+        new ItemDefinition("fijaciones", "Fijaciones recuperadas", "#c7b299", ItemCategory.Component,
+            "Tornillos y remaches rescatados de los restos de la nave.", Tags: new[] { "Componente" }),
+        new ItemDefinition("mango", "Mango", "#a9773f", ItemCategory.Component,
+            "Agarre de madera o compuesto para herramientas.", Tags: new[] { "Componente" }),
+
+        // --- tools (Fase 5) -------------------------------------------------
+        new ItemDefinition("martillo", "Martillo improvisado", "#d0a24c", ItemCategory.Tool,
+            "Rompe roca compacta como el basalto.", Tags: new[] { "Herramienta", "Mineria" }),
+        new ItemDefinition("pala", "Pala improvisada", "#b8b8b8", ItemCategory.Tool,
+            "Retira regolito y material suelto.", Tags: new[] { "Herramienta", "Excavacion" }),
+        new ItemDefinition("pico", "Pico básico", "#8a8f96", ItemCategory.Tool,
+            "Extrae depósitos de roca con eficacia.", Tags: new[] { "Herramienta", "Mineria" }),
+        new ItemDefinition("pico_reforzado", "Pico reforzado", "#c9a13a", ItemCategory.Tool,
+            "Pico con refuerzo de basalto; mina y excava.", Tags: new[] { "Herramienta", "Mineria", "Excavacion" }),
     });
 }
 
@@ -67,12 +146,18 @@ public sealed class NodeDatabase
 
     public static NodeDatabase CreateDefault() => new(new[]
     {
+        // Existing survival nodes stay hand-harvestable to keep the early loop intact.
         new NodeDefinition("ice", "hielo", "#8fd3f4"),
         new NodeDefinition("iron", "hierro", "#a6806f"),
         new NodeDefinition("si", "silicio", "#e0d2a8"),
+
+        // Milestone nodes with tool requirements.
+        new NodeDefinition("rock", "roca", "#9a8f86", RequiredToolTag: null, HitsPerUnit: 1),
+        new NodeDefinition("regolith", "regolito", "#b98c6a", RequiredToolTag: "Excavacion", HitsPerUnit: 1),
+        new NodeDefinition("basalt", "basalto", "#5b5f66", RequiredToolTag: "Mineria", HitsPerUnit: 2),
     });
 
-    /// <summary>Fixed world spawns, ported verbatim from the original NODES table.</summary>
+    /// <summary>Fixed world spawns, ported verbatim from the original NODES table plus new geology.</summary>
     public static IReadOnlyList<NodeSpawn> DefaultSpawns { get; } = new[]
     {
         new NodeSpawn("ice", 350, 70),
@@ -91,6 +176,29 @@ public sealed class NodeDatabase
         new NodeSpawn("si", 420, 300),
         new NodeSpawn("si", 712, 214),
         new NodeSpawn("si", 610, 200),
+
+        // Rock is everywhere and needs no tool: the first thing the player gathers.
+        new NodeSpawn("rock", 300, 92),
+        new NodeSpawn("rock", 455, 132),
+        new NodeSpawn("rock", 712, 132),
+        new NodeSpawn("rock", 522, 360),
+        // Regolith requires a shovel.
+        new NodeSpawn("regolith", 250, 262),
+        new NodeSpawn("regolith", 332, 286),
+        new NodeSpawn("regolith", 612, 384),
+        // Basalt requires a mining tool (hammer/pick).
+        new NodeSpawn("basalt", 612, 180),
+        new NodeSpawn("basalt", 720, 306),
+        new NodeSpawn("basalt", 400, 62),
+    };
+
+    /// <summary>Loose items near the landing site so the first tool is reachable quickly.</summary>
+    public static IReadOnlyList<PickupSpawn> DefaultPickups { get; } = new[]
+    {
+        new PickupSpawn("fijaciones", 2, 272, 226),
+        new PickupSpawn("fijaciones", 2, 232, 242),
+        new PickupSpawn("mango", 1, 286, 206),
+        new PickupSpawn("roca", 3, 236, 202),
     };
 }
 

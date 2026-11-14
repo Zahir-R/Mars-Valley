@@ -15,6 +15,8 @@ public sealed class Inventory
     public void Add(string id, int amount) => this[id] += amount;
 
     public void Remove(string id, int amount) => this[id] = Math.Max(0, this[id] - amount);
+
+    public IEnumerable<KeyValuePair<string, int>> Entries => _items;
 }
 
 public sealed class Vitals
@@ -53,8 +55,28 @@ public sealed class ResourceNode
     public float X { get; }
     public float Y { get; }
     public int Amount { get; set; }
+    public int Progress { get; set; }
     public double Regen { get; set; }
     public double Shake { get; set; }
+}
+
+/// <summary>A loose item on the ground that is collected directly on interaction.</summary>
+public sealed class Pickup
+{
+    public Pickup(string itemId, int amount, float x, float y)
+    {
+        ItemId = itemId;
+        Amount = amount;
+        X = x;
+        Y = y;
+    }
+
+    public string ItemId { get; }
+    public int Amount { get; }
+    public float X { get; }
+    public float Y { get; }
+    public bool Taken { get; set; }
+    public double Bob { get; set; }
 }
 
 public sealed class Storm
@@ -125,6 +147,7 @@ public sealed class GameState
     public Dictionary<string, bool> Repairs { get; } = new();
     public List<Plot> Plots { get; } = new();
     public List<ResourceNode> Nodes { get; } = new();
+    public List<Pickup> Pickups { get; } = new();
     public Storm Storm { get; } = new();
     public RunStats Stats { get; } = new();
     public WarningFlags Flags { get; } = new();

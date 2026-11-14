@@ -20,6 +20,7 @@ public sealed class GameSession : IGameContext
         ItemDatabase? items = null,
         NodeDatabase? nodes = null,
         PartDatabase? parts = null,
+        RecipeDatabase? recipes = null,
         MissionSet? missions = null,
         IRandom? rng = null,
         GameEvents? events = null)
@@ -28,6 +29,7 @@ public sealed class GameSession : IGameContext
         Items = items ?? ItemDatabase.CreateDefault();
         Nodes = nodes ?? NodeDatabase.CreateDefault();
         Parts = parts ?? PartDatabase.CreateDefault();
+        Recipes = recipes ?? RecipeDatabase.CreateDefault();
         Missions = missions ?? MissionSet.CreateDefault();
         Rng = rng ?? new SystemRandom();
         Events = events ?? new GameEvents();
@@ -39,6 +41,7 @@ public sealed class GameSession : IGameContext
     public ItemDatabase Items { get; }
     public NodeDatabase Nodes { get; }
     public PartDatabase Parts { get; }
+    public RecipeDatabase Recipes { get; }
     public MissionSet Missions { get; }
     public IRandom Rng { get; }
     public GameEvents Events { get; }
@@ -149,7 +152,23 @@ public sealed class GameSession : IGameContext
     public void RefillO2() => new RefillO2Command().Execute(this);
     public void MeltIce() => new MeltIceCommand().Execute(this);
 
+    public void Craft(string recipeId)
+    {
+        if (Recipes.TryGet(recipeId, out var recipe)) new CraftCommand(recipe).Execute(this);
+    }
+
     // ---- IGameContext ---------------------------------------------------------
+
+    public bool HasToolTag(string? tag)
+    {
+        if (string.IsNullOrEmpty(tag)) return true;
+        foreach (var (id, count) in State.Inventory.Entries)
+        {
+            if (count <= 0) continue;
+            if (Items.TryGet(id, out var def) && def.IsTool && def.HasTag(tag)) return true;
+        }
+        return false;
+    }
 
     public void Say(string text, MessageKind kind = MessageKind.Info)
     {
@@ -173,6 +192,7 @@ public sealed class GameSession : IGameContext
         s.Inventory["agua"] = Balance.StartWater;
         s.Inventory["semillas"] = Balance.StartSeeds;
         s.Inventory["papas"] = Balance.StartPotatoes;
+        s.Inventory["fijaciones"] = Balance.StartFijaciones;
 
         s.Vitals.O2 = Balance.StartO2;
         s.Vitals.Energy = Balance.StartEnergy;
@@ -188,6 +208,11 @@ public sealed class GameSession : IGameContext
         foreach (var spawn in NodeDatabase.DefaultSpawns)
         {
             s.Nodes.Add(new ResourceNode(spawn.Type, spawn.X, spawn.Y, Balance.NodeAmount));
+        }
+
+        foreach (var spawn in NodeDatabase.DefaultPickups)
+        {
+            s.Pickups.Add(new Pickup(spawn.ItemId, spawn.Amount, spawn.X, spawn.Y));
         }
 
         s.Storm.Next = Balance.FirstStormDelay;

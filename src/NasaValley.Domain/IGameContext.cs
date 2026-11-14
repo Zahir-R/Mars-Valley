@@ -11,9 +11,13 @@ public interface IGameContext
     ItemDatabase Items { get; }
     NodeDatabase Nodes { get; }
     PartDatabase Parts { get; }
+    RecipeDatabase Recipes { get; }
     MissionSet Missions { get; }
     IRandom Rng { get; }
     GameEvents Events { get; }
+
+    /// <summary>True when the player owns a tool whose tags include <paramref name="tag"/>.</summary>
+    bool HasToolTag(string? tag);
 
     void Say(string text, MessageKind kind = MessageKind.Info);
     void Finish(bool win);
