@@ -216,7 +216,11 @@ public partial class GameFrame : Control
 
         var banner = string.Empty;
         var crit = false;
-        if (s.Storm.Left > 0)
+        if (s.Building)
+        {
+            banner = "Construcción · E colocar · Esc cancelar";
+        }
+        else if (s.Storm.Left > 0)
         {
             banner = "Tormenta de polvo · " + Math.Ceiling(s.Storm.Left) + " s";
             crit = true;

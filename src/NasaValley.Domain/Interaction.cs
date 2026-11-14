@@ -8,6 +8,8 @@ public sealed record PlotTarget(Plot Plot) : InteractionTarget;
 
 public sealed record PickupTarget(Pickup Pickup) : InteractionTarget;
 
+public sealed record StationTarget(Station Station) : InteractionTarget;
+
 public sealed record ShipTarget : InteractionTarget;
 
 /// <summary>
@@ -63,6 +65,16 @@ public static class InteractionSystem
             }
         }
 
+        foreach (var station in s.Stations)
+        {
+            var d = Distance(station.X, station.Y, s.Px, s.Py);
+            if (d < b.StationInteractRadius && d < bestDistance)
+            {
+                bestDistance = d;
+                best = new StationTarget(station);
+            }
+        }
+
         var shipDistance = ShipDistance(s, b);
         if (shipDistance < b.ShipTargetRadius && shipDistance < bestDistance)
         {
@@ -92,25 +104,50 @@ public static class InteractionSystem
                 var pickupDef = ctx.Items[pt.Pickup.ItemId];
                 return $"Recoger {pickupDef.Name.ToLowerInvariant()} ({pt.Pickup.Amount})";
 
+            case StationTarget st:
+                return st.Station.Kind switch
+                {
+                    StationKind.Workbench => "Usar banco de trabajo",
+                    StationKind.Farm => "Consola del invernadero",
+                    _ => "Abrir consola",
+                };
+
             case ShipTarget:
                 return "Abrir panel de la nave";
 
             case PlotTarget pt:
-                var plot = pt.Plot;
-                return plot.State switch
-                {
-                    PlotState.Empty => s.Inventory["semillas"] > 0
-                        ? "Plantar papa (1 semilla)"
-                        : "Sin semillas para plantar",
-                    PlotState.Dry => s.Inventory["agua"] > 0
-                        ? "Regar (1 agua)"
-                        : "Necesita agua: fúndela en la nave",
-                    PlotState.Grow => "Creciendo… " + Math.Ceiling(plot.Time) + " s",
-                    _ => "Cosechar papas",
-                };
+                return PlotPrompt(ctx, pt.Plot);
 
             default:
                 return string.Empty;
+        }
+    }
+
+    private static string PlotPrompt(IGameContext ctx, Plot plot)
+    {
+        var s = ctx.State;
+        ctx.Plants.TryGet(plot.PlantId, out var crop);
+
+        switch (plot.State)
+        {
+            case PlotState.Empty:
+                var selected = ctx.Plants[s.SelectedCrop];
+                return s.Inventory["semillas"] > 0
+                    ? $"Plantar {selected.Name.ToLowerInvariant()} (1 semilla)"
+                    : "Sin semillas para plantar";
+
+            case PlotState.Dry:
+                var need = crop?.WaterPerGrowth ?? 1;
+                return s.Inventory["agua"] >= need
+                    ? $"Regar ({need} agua)"
+                    : $"Necesitas {need} de agua";
+
+            case PlotState.Grow:
+                var blocker = FarmingSystem.GrowthBlocker(ctx, plot);
+                return blocker.Length > 0 ? blocker : $"Creciendo… {Math.Ceiling(plot.Time)} s";
+
+            default:
+                return crop != null ? $"Cosechar {crop.Name.ToLowerInvariant()}" : "Cosechar";
         }
     }
 

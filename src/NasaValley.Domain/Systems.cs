@@ -110,21 +110,77 @@ public static class WeatherSystem
 	}
 }
 
+public static class DomeSystem
+{
+	/// <summary>Solar charge during daylight, and energy spent holding the target temperature.</summary>
+	public static void Update(IGameContext ctx, double dt)
+	{
+		var s = ctx.State;
+		var b = ctx.Balance;
+		var light = EnvironmentSystem.Light(s, b);
+
+		foreach (var dome in s.Domes)
+		{
+			var area = ctx.Areas.At(dome.CenterX, dome.CenterY);
+			var external = EnvironmentSystem.ExternalTemp(area, s, b);
+			dome.ExternalTempC = external;
+
+			dome.Energy = Math.Min(b.DomeMaxEnergy, dome.Energy + light * area.SolarFactor * b.DomeSolarRate * dt);
+
+			var needed = Math.Abs(external - b.DomeTargetTempC) * b.DomeEnergyPerDegreePerSec * dt;
+			if (dome.Energy >= needed)
+			{
+				dome.Energy -= needed;
+				dome.InternalTempC = b.DomeTargetTempC;
+			}
+			else
+			{
+				dome.Energy = 0;
+				dome.InternalTempC = external;
+			}
+		}
+	}
+}
+
 public static class FarmingSystem
 {
 	public static void Update(IGameContext ctx, double dt)
 	{
-		foreach (var plot in ctx.State.Plots)
+		var s = ctx.State;
+		var b = ctx.Balance;
+		var light = EnvironmentSystem.Light(s, b);
+
+		foreach (var plot in s.Plots)
 		{
 			if (plot.State != PlotState.Grow) continue;
+			if (!ctx.Plants.TryGet(plot.PlantId, out var plant)) continue;
+
+			var temp = plot.Dome?.InternalTempC ?? b.DomeTargetTempC;
+			if (light < plant.MinLight) continue;
+			if (temp < plant.MinTempC || temp > plant.MaxTempC) continue;
+
 			plot.Time -= dt;
 			if (plot.Time <= 0)
 			{
 				plot.State = PlotState.Ready;
 				plot.Time = 0;
-				ctx.Say("Una papa está lista para cosechar.", MessageKind.Good);
+				ctx.Say($"{plant.Name} lista para cosechar.", MessageKind.Good);
 			}
 		}
+	}
+
+	/// <summary>Why a growing crop is stalled (empty string if it is growing fine).</summary>
+	public static string GrowthBlocker(IGameContext ctx, Plot plot)
+	{
+		if (plot.State != PlotState.Grow) return string.Empty;
+		if (!ctx.Plants.TryGet(plot.PlantId, out var plant)) return "Cultivo desconocido";
+
+		var light = EnvironmentSystem.Light(ctx.State, ctx.Balance);
+		var temp = plot.Dome?.InternalTempC ?? ctx.Balance.DomeTargetTempC;
+		if (light < plant.MinLight) return "Falta luz";
+		if (temp < plant.MinTempC) return "Hace frío";
+		if (temp > plant.MaxTempC) return "Hace calor";
+		return string.Empty;
 	}
 }
 

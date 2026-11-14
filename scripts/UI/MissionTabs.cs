@@ -235,42 +235,54 @@ public sealed class FarmPanel
     public Control Root { get; }
 
     private readonly GameSession _session;
+    private readonly System.Action? _onBuild;
+    private readonly VBoxContainer _content;
+    private readonly Dictionary<string, Button> _cropButtons = new();
     private readonly Label _seeds;
-    private readonly Label _potatoes;
     private readonly Label _water;
-    private readonly List<PlotCard> _plots = new();
 
-    public FarmPanel(GameSession session)
+    public FarmPanel(GameSession session, System.Action? onBuild = null)
     {
         _session = session;
+        _onBuild = onBuild;
 
         _seeds = UiTheme.Text("0", 13, Palette.Suit, Fonts.Mono);
-        _potatoes = UiTheme.Text("0", 13, Palette.Suit, Fonts.Mono);
         _water = UiTheme.Text("0", 13, Palette.Suit, Fonts.Mono);
 
-        var seedline = UiTheme.HBox(16);
-        seedline.AddChild(Stat("Semillas", _seeds));
-        seedline.AddChild(Stat("Papas", _potatoes));
-        seedline.AddChild(Stat("Agua", _water));
+        var stock = UiTheme.HBox(16);
+        stock.AddChild(Stat("Semillas", _seeds));
+        stock.AddChild(Stat("Agua", _water));
 
-        var grid = new GridContainer { Columns = 4 };
-        grid.AddThemeConstantOverride("h_separation", 6);
-        grid.AddThemeConstantOverride("v_separation", 6);
-        for (var i = 0; i < session.State.Plots.Count; i++)
+        var crops = new HFlowContainer();
+        crops.AddThemeConstantOverride("h_separation", 6);
+        crops.AddThemeConstantOverride("v_separation", 6);
+        foreach (var id in session.Plants.Order)
         {
-            var card = new PlotCard(i);
-            _plots.Add(card);
-            grid.AddChild(card.Root);
+            var plant = session.Plants[id];
+            var button = UiTheme.GhostButton(plant.Name, 12);
+            button.Pressed += () => session.SetCrop(id);
+            _cropButtons[id] = button;
+            crops.AddChild(button);
         }
+
+        var build = UiTheme.PrimaryButton("Construir cúpula  B", 13);
+        build.Pressed += () => _onBuild?.Invoke();
+
+        _content = UiTheme.VBox(10);
+
+        var hint = UiTheme.Label(
+            "Elige un cultivo y camina hasta una parcela para plantarlo (E). Cada cúpula gasta energía para mantener la temperatura; el clima y la zona afectan la luz y el frío.",
+            12, Palette.Muted);
+        hint.AutowrapMode = TextServer.AutowrapMode.WordSmart;
 
         var body = UiTheme.VBox(12);
         body.AddChild(UiTheme.Caption("Invernadero"));
-        body.AddChild(seedline);
-        body.AddChild(grid);
-        body.AddChild(UiTheme.Label(
-            "Cada papa necesita 1 de agua y unos 25 s para madurar. Una cosecha da 2 papas y, a veces, una semilla nueva. Funde hielo en la nave para conseguir agua.",
-            12, Palette.Muted));
-        ((Label)body.GetChild(3)).AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        body.AddChild(stock);
+        body.AddChild(UiTheme.Label("Cultivo seleccionado", 12, Palette.Muted));
+        body.AddChild(crops);
+        body.AddChild(build);
+        body.AddChild(_content);
+        body.AddChild(hint);
 
         var panel = new PanelContainer();
         panel.AddThemeStyleboxOverride("panel", UiTheme.Card(14));
@@ -290,9 +302,91 @@ public sealed class FarmPanel
     {
         var s = _session.State;
         _seeds.Text = s.Inventory["semillas"].ToString();
-        _potatoes.Text = s.Inventory["papas"].ToString();
         _water.Text = s.Inventory["agua"].ToString();
-        for (var i = 0; i < _plots.Count; i++) _plots[i].Refresh(s.Plots[i], _session.Balance);
+
+        foreach (var (id, button) in _cropButtons)
+        {
+            var selected = id == s.SelectedCrop;
+            button.Modulate = selected ? Colors.White : new Color(1, 1, 1, 0.55f);
+            button.Text = (selected ? "▶ " : string.Empty) + _session.Plants[id].Name;
+        }
+
+        if (Root.IsVisibleInTree()) Rebuild();
+    }
+
+    private void Rebuild()
+    {
+        foreach (var child in _content.GetChildren()) child.QueueFree();
+
+        var s = _session.State;
+        if (s.Domes.Count == 0)
+        {
+            _content.AddChild(UiTheme.Label(
+                "Aún no hay cúpulas. Pulsa «Construir cúpula» (B) y colócala con E.", 12, Palette.Muted));
+            return;
+        }
+
+        var light = EnvironmentSystem.Light(s, _session.Balance);
+        var lightPct = Mathf.RoundToInt((float)light * 100);
+
+        foreach (var dome in s.Domes)
+        {
+            var area = _session.Areas.At(dome.CenterX, dome.CenterY);
+
+            var header = UiTheme.Text($"Cúpula {dome.Id} · {area.Name}", 13, Palette.Suit, Fonts.SansWeight(600));
+            var stats = UiTheme.Label(
+                $"Interior {dome.InternalTempC:0}°C · Exterior {dome.ExternalTempC:0}°C · Luz {lightPct}% · Energía {dome.Energy:0}%",
+                12, dome.Energy <= 0 ? Palette.Health : Palette.Muted);
+
+            var rows = UiTheme.VBox(4);
+            for (var i = 0; i < dome.Plots.Count; i++)
+            {
+                rows.AddChild(SlotRow(dome.Plots[i], i + 1));
+            }
+
+            var card = new PanelContainer();
+            var pad = UiTheme.Card(10);
+            card.AddThemeStyleboxOverride("panel", pad);
+            var box = UiTheme.VBox(6);
+            box.AddChild(header);
+            box.AddChild(stats);
+            box.AddChild(rows);
+            card.AddChild(box);
+            _content.AddChild(card);
+        }
+    }
+
+    private Control SlotRow(Plot plot, int index)
+    {
+        _session.Plants.TryGet(plot.PlantId, out var plant);
+        var name = plant?.Name ?? "—";
+
+        string text;
+        Color color;
+        switch (plot.State)
+        {
+            case PlotState.Empty:
+                text = $"Parcela {index}: vacía";
+                color = Palette.Muted;
+                break;
+            case PlotState.Dry:
+                text = $"Parcela {index}: {name} sin regar";
+                color = Palette.Water;
+                break;
+            case PlotState.Grow:
+                var blocker = FarmingSystem.GrowthBlocker(_session, plot);
+                text = blocker.Length > 0
+                    ? $"Parcela {index}: {name} — {blocker}"
+                    : $"Parcela {index}: {name} creciendo {Math.Ceiling(plot.Time)} s";
+                color = blocker.Length > 0 ? Palette.Health : Palette.Food;
+                break;
+            default:
+                text = $"Parcela {index}: {name} lista para cosechar";
+                color = Palette.Food;
+                break;
+        }
+
+        return UiTheme.Label(text, 12, color);
     }
 }
 

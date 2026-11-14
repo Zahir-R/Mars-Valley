@@ -32,7 +32,9 @@ public partial class WorldView : Node2D
         if (size != _lastSize && size.X > 0 && size.Y > 0)
         {
             _lastSize = size;
-            Scale = new Vector2(size.X / ViewWidth, size.Y / ViewHeight);
+            var scale = Mathf.Min(size.X / ViewWidth, size.Y / ViewHeight);
+            Scale = new Vector2(scale, scale);
+            Position = new Vector2((size.X - ViewWidth * scale) * 0.5f, (size.Y - ViewHeight * scale) * 0.5f);
         }
 
         QueueRedraw();
@@ -44,7 +46,7 @@ public partial class WorldView : Node2D
         var b = Session.Balance;
         var clock = Time.GetTicksMsec() / 1000.0;
 
-        WorldDraw.DrawFarm(this, s, b, clock);
+        DrawDomes(s, b, clock);
         WorldDraw.DrawShip(this, s, b, clock);
 
         DrawEntities(s, clock);
@@ -57,6 +59,22 @@ public partial class WorldView : Node2D
         DrawParticles(s);
         DrawFloats(s);
         DrawWeather(s, b, clock);
+    }
+
+    private void DrawDomes(GameState s, BalanceConfig b, double clock)
+    {
+        foreach (var dome in s.Domes) WorldDraw.DrawDome(this, dome, b);
+
+        foreach (var plot in s.Plots)
+        {
+            Session.Plants.TryGet(plot.PlantId, out var plant);
+            WorldDraw.DrawPlantSlot(this, plot, plant, b, clock);
+        }
+
+        if (s.Building)
+        {
+            WorldDraw.DrawBuildGhost(this, s.BuildX, s.BuildY, b, Session.CanPlaceDome());
+        }
     }
 
     private void DrawEntities(GameState s, double clock)
@@ -73,6 +91,11 @@ public partial class WorldView : Node2D
         {
             if (pickup.Taken) continue;
             drawables.Add((pickup.Y + 6, () => WorldDraw.DrawPickup(this, pickup, Session.Items[pickup.ItemId], clock)));
+        }
+
+        foreach (var station in s.Stations)
+        {
+            drawables.Add((station.Y + 8, () => WorldDraw.DrawStation(this, station, clock)));
         }
 
         drawables.Add((s.Py + 12, () => WorldDraw.DrawAstronaut(this, s)));

@@ -38,6 +38,14 @@ public static class UiTheme
         return panel;
     }
 
+    /// <summary>Placeholder icon: a flat colored square as an ImageTexture.</summary>
+    public static ImageTexture ColorTexture(Color color, int size = 14)
+    {
+        var img = Image.CreateEmpty(size, size, false, Image.Format.Rgba8);
+        img.Fill(color);
+        return ImageTexture.CreateFromImage(img);
+    }
+
     public static Label Text(string text, int size, Color color, Font font)
     {
         var label = new Label { Text = text };

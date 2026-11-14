@@ -119,22 +119,25 @@ public sealed class CraftCommand(RecipeDefinition recipe) : IGameCommand
     }
 }
 
-public sealed class PlantCommand(Plot plot) : IGameCommand
+public sealed class PlantCommand(Plot plot, string plantId) : IGameCommand
 {
     public void Execute(IGameContext ctx)
     {
         var s = ctx.State;
-        if (s.Inventory["semillas"] > 0)
-        {
-            s.Inventory.Remove("semillas", 1);
-            plot.State = PlotState.Dry;
-            s.Stats.Planted++;
-            ctx.Say("Plantas una papa. Falta regarla.");
-        }
-        else
+        if (!ctx.Plants.TryGet(plantId, out var plant)) return;
+
+        if (s.Inventory["semillas"] < 1)
         {
             ctx.Say("No tienes semillas.", MessageKind.Warn);
+            return;
         }
+
+        s.Inventory.Remove("semillas", 1);
+        plot.PlantId = plantId;
+        plot.State = PlotState.Dry;
+        plot.Time = plant.GrowTime;
+        s.Stats.Planted++;
+        ctx.Say($"Plantas {plant.Name.ToLowerInvariant()}. Falta regarla.");
     }
 }
 
@@ -143,17 +146,19 @@ public sealed class WaterCommand(Plot plot) : IGameCommand
     public void Execute(IGameContext ctx)
     {
         var s = ctx.State;
-        if (s.Inventory["agua"] > 0)
+        if (!ctx.Plants.TryGet(plot.PlantId, out var plant)) return;
+
+        var need = plant.WaterPerGrowth;
+        if (s.Inventory["agua"] < need)
         {
-            s.Inventory.Remove("agua", 1);
-            plot.State = PlotState.Grow;
-            plot.Time = ctx.Balance.GrowTime;
-            ctx.Say($"Riegas la planta. Madura en unos {ctx.Balance.GrowTime:0} s.");
+            ctx.Say($"Necesitas {need} de agua. Funde hielo en la nave.", MessageKind.Warn);
+            return;
         }
-        else
-        {
-            ctx.Say("Necesitas agua. Funde hielo en la nave.", MessageKind.Warn);
-        }
+
+        s.Inventory.Remove("agua", need);
+        plot.State = PlotState.Grow;
+        plot.Time = plant.GrowTime;
+        ctx.Say($"Riegas la planta. Madura en unos {plant.GrowTime:0} s.");
     }
 }
 
@@ -162,12 +167,16 @@ public sealed class HarvestCommand(Plot plot) : IGameCommand
     public void Execute(IGameContext ctx)
     {
         var s = ctx.State;
-        s.Inventory.Add("papas", ctx.Balance.HarvestPotatoes);
+        if (!ctx.Plants.TryGet(plot.PlantId, out var plant)) return;
+
+        var name = ctx.Items[plant.HarvestItemId].Name;
+        s.Inventory.Add(plant.HarvestItemId, plant.HarvestYield);
         var seed = ctx.Rng.NextDouble() < ctx.Balance.HarvestSeedChance;
         if (seed) s.Inventory.Add("semillas", 1);
         s.Stats.Harvested++;
         plot.State = PlotState.Empty;
-        ctx.Say("Cosechas 2 papas" + (seed ? " y 1 semilla." : "."), MessageKind.Good);
+        ctx.Say($"Cosechas {plant.HarvestYield} {name.ToLowerInvariant()}" + (seed ? " y 1 semilla." : "."),
+            MessageKind.Good);
     }
 }
 
@@ -199,20 +208,63 @@ public sealed class RepairPartCommand(string partId) : IGameCommand
 
 public sealed class EatCommand : IGameCommand
 {
+    private static readonly string[] Foods = { "papas", "lechuga", "tomate", "trigo", "rabano" };
+
     public void Execute(IGameContext ctx)
     {
         var s = ctx.State;
         if (!s.Running || s.Paused || s.Over) return;
-        if (s.Inventory["papas"] < 1)
+
+        string? food = null;
+        if (s.FoodSource != null && s.Inventory[s.FoodSource] > 0 &&
+            ctx.Items.TryGet(s.FoodSource, out var source) && source.HasTag("Comida"))
         {
-            ctx.Say("No tienes papas.", MessageKind.Warn);
+            food = s.FoodSource;
+        }
+
+        if (food == null)
+        {
+            foreach (var id in Foods)
+            {
+                if (s.Inventory[id] > 0) { food = id; break; }
+            }
+        }
+
+        if (food == null)
+        {
+            ctx.Say("No tienes comida. Cultiva algo en una cúpula.", MessageKind.Warn);
             return;
         }
 
-        s.Inventory.Remove("papas", 1);
+        EatOne(ctx, food);
+    }
+
+    internal static void EatOne(IGameContext ctx, string foodId)
+    {
+        var s = ctx.State;
+        s.Inventory.Remove(foodId, 1);
         s.Vitals.Food = Math.Min(100, s.Vitals.Food + ctx.Balance.EatFoodGain);
         s.Vitals.Energy = Math.Min(100, s.Vitals.Energy + ctx.Balance.EatEnergyGain);
-        ctx.Say("Comes una papa: +30 alimento, +10 energía.", MessageKind.Good);
+        ctx.Say($"Comes {ctx.Items[foodId].Name.ToLowerInvariant()}: +{ctx.Balance.EatFoodGain} alimento, +{ctx.Balance.EatEnergyGain} energía.",
+            MessageKind.Good);
+    }
+}
+
+public sealed class EatItemCommand(string itemId) : IGameCommand
+{
+    public void Execute(IGameContext ctx)
+    {
+        var s = ctx.State;
+        if (!s.Running || s.Paused || s.Over) return;
+        if (!ctx.Items.TryGet(itemId, out var def) || !def.HasTag("Comida")) return;
+
+        if (s.Inventory[itemId] < 1)
+        {
+            ctx.Say($"No tienes {def.Name.ToLowerInvariant()}.", MessageKind.Warn);
+            return;
+        }
+
+        EatCommand.EatOne(ctx, itemId);
     }
 }
 
@@ -261,7 +313,7 @@ public sealed class InteractCommand(InteractionTarget target) : IGameCommand
                 switch (pt.Plot.State)
                 {
                     case PlotState.Empty:
-                        new PlantCommand(pt.Plot).Execute(ctx);
+                        new PlantCommand(pt.Plot, ctx.State.SelectedCrop).Execute(ctx);
                         break;
                     case PlotState.Dry:
                         new WaterCommand(pt.Plot).Execute(ctx);

@@ -42,25 +42,33 @@ public class SimulationTests
         Assert.Equal(session.Balance.NodeAmount, node.Amount);
     }
 
+    private static Dome BuildDome(GameSession session, float x = 300, float y = 120)
+    {
+        foreach (var (item, amount) in session.Balance.DomeCost) session.State.Inventory[item] = amount;
+        Assert.True(BuildSystem.TryBuild(session, x, y, out _));
+        return session.State.Domes[^1];
+    }
+
     [Fact]
     public void FarmingLoopProducesPotatoesAndMaybeSeeds()
     {
         var session = NewSession();
+        BuildDome(session);
         var plot = session.State.Plots[0];
 
-        new PlantCommand(plot).Execute(session);
+        new PlantCommand(plot, "papa").Execute(session);
         Assert.Equal(PlotState.Dry, plot.State);
         Assert.Equal(1, session.State.Stats.Planted);
 
         new WaterCommand(plot).Execute(session);
         Assert.Equal(PlotState.Grow, plot.State);
 
-        FarmingSystem.Update(session, session.Balance.GrowTime + 0.1);
+        FarmingSystem.Update(session, session.Plants["papa"].GrowTime + 0.1);
         Assert.Equal(PlotState.Ready, plot.State);
 
         var potatoesBefore = session.State.Inventory["papas"];
         new HarvestCommand(plot).Execute(session);
-        Assert.Equal(potatoesBefore + session.Balance.HarvestPotatoes, session.State.Inventory["papas"]);
+        Assert.Equal(potatoesBefore + session.Plants["papa"].HarvestYield, session.State.Inventory["papas"]);
         Assert.Equal(1, session.State.Stats.Harvested);
         Assert.Equal(PlotState.Empty, plot.State);
     }

@@ -292,6 +292,36 @@ public sealed class RecipeRow
     }
 }
 
+/// <summary>Placeholder icon: a colored square showing the item's initials.</summary>
+public sealed partial class IconSwatch : Control
+{
+    private readonly ColorRect _bg;
+    private readonly Label _label;
+
+    public IconSwatch(int size = 40)
+    {
+        CustomMinimumSize = new Vector2(size, size);
+        MouseFilter = MouseFilterEnum.Ignore;
+
+        _bg = new ColorRect { MouseFilter = MouseFilterEnum.Ignore };
+        _bg.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        AddChild(_bg);
+
+        _label = UiTheme.Text(string.Empty, Mathf.Max(12, size / 3), Palette.Ink, Fonts.DisplayWeight(700));
+        _label.HorizontalAlignment = HorizontalAlignment.Center;
+        _label.VerticalAlignment = VerticalAlignment.Center;
+        _label.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        _label.MouseFilter = MouseFilterEnum.Ignore;
+        AddChild(_label);
+    }
+
+    public void Set(Color color, string initials)
+    {
+        _bg.Color = color;
+        _label.Text = initials;
+    }
+}
+
 public sealed class GoalRow
 {
     public Control Root { get; }

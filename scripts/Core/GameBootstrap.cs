@@ -15,6 +15,7 @@ public partial class GameBootstrap : Node
 
     private GameSession _session = null!;
     private InputAdapter _input = null!;
+    private Hud _hud = null!;
     private double _accumulator;
 
     public override void _Ready()
@@ -24,14 +25,37 @@ public partial class GameBootstrap : Node
         _session = new GameSession();
         _input = new InputAdapter();
 
-        AddChild(new Hud(_session, _input));
+        _hud = new Hud(_session, _input);
+        AddChild(_hud);
     }
 
     public override void _Process(double delta)
     {
+
         if (_input.PausePressed())
         {
-            _session.TogglePause();
+            if (_session.State.ModalOpen) _hud.CloseModal();
+            else if (_session.State.Building) _session.CancelBuild();
+            else _session.TogglePause();
+            return;
+        }
+
+        if (_input.BuildPressed() && _session.State.Running &&
+            !_session.State.ModalOpen && !_session.State.Building)
+        {
+            _session.StartBuild();
+        }
+
+        if (_input.StatsPressed() && _session.State.Running && !_session.State.ModalOpen)
+        {
+            _hud.ToggleStats();
+        }
+
+        if (_session.State.ModalOpen)
+        {
+            _input.GetIntent();
+            _accumulator = 0;
+            return;
         }
 
         if (_session.State.Running && !_session.State.Paused && !_session.State.Over && _input.EatPressed())
@@ -56,6 +80,7 @@ public partial class GameBootstrap : Node
         if (what == NotificationApplicationFocusOut)
         {
             _input.Clear();
+            if (_session.State.ModalOpen) return;
             if (_session.State.Running && !_session.State.Paused)
             {
                 _session.TogglePause();

@@ -6,75 +6,70 @@ using NasaValley.Rendering;
 namespace NasaValley.UI;
 
 /// <summary>
-/// Assembles the whole page shell and drives the ~8 Hz UI refresh, exactly like
-/// the original renderUI loop. Reads state, never mutates it.
+/// Full-screen game shell: the world fills the window, a minimal overlay HUD floats
+/// over it, a left stats drawer toggles with Tab, and base stations open modal panels.
 /// </summary>
 public partial class Hud : Control
 {
-    private const float MaxContentWidth = 1280f;
-
     public Control Root => this;
 
     private readonly GameSession _session;
-    private readonly InputAdapter _input;
 
-    private readonly TopBar _topBar;
-    private readonly VitalsPanel _vitals = new();
+    private readonly InventoryPanel _inventory;
     private readonly LogPanel _log = new();
-    private readonly Hotbar _hotbar;
-    private readonly MissionTabs _tabs;
+    private readonly ShipPanel _ship;
+    private readonly WorkshopPanel _workshop;
+    private readonly FarmPanel _farm;
+    private readonly GoalsPanel _goals;
+    private readonly StatsDrawer _stats;
     private readonly TouchPad _pad;
     private readonly SubViewportContainer _viewport;
     private readonly GameFrame _frame;
-    private readonly StageLayout _stage;
-    private readonly MarginContainer _margin;
+    private readonly ModalHost _modal;
+    private readonly HBoxContainer _topButtons;
 
     private double _uiTimer;
-    private float _lastViewportWidth = -1;
-    private int _lastSideMargin = -1;
-    private int _mode = -1;
 
     public Hud(GameSession session, InputAdapter input)
     {
         _session = session;
-        _input = input;
 
-        _topBar = new TopBar(session, session.TogglePause);
-        _hotbar = new Hotbar(session, session.Eat);
-        _tabs = new MissionTabs(session);
-        _pad = new TouchPad(input, session.Eat);
         _frame = new GameFrame { Session = session };
-
         _viewport = BuildViewport(session, _frame);
+        AddChild(_viewport);
+        _viewport.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
 
-        var center = UiTheme.VBox(10);
-        center.AddChild(FrameViewport(_viewport));
-        center.AddChild(_pad.Root);
-        center.AddChild(_hotbar.Root);
+        _inventory = new InventoryPanel(session);
+        _ship = new ShipPanel(session);
+        _workshop = new WorkshopPanel(session);
+        _farm = new FarmPanel(session, BuildDomeFromModal);
+        _goals = new GoalsPanel(session);
+        _pad = new TouchPad(input, session.Eat);
+        _stats = new StatsDrawer(session, ToggleStats);
 
-        _stage = new StageLayout(_vitals.Root, center, _log.Root, _tabs.Root);
+        AddChild(_stats.Root);
+        AddChild(_stats.Icon);
 
-        var page = UiTheme.VBox(14);
-        page.AddChild(_topBar.Root);
-        page.AddChild(_stage);
+        _topButtons = BuildTopButtons();
+        AddChild(_topButtons);
 
-        _margin = new MarginContainer();
-        _margin.AddThemeConstantOverride("margin_top", 16);
-        _margin.AddThemeConstantOverride("margin_bottom", 24);
-        _margin.AddChild(page);
-        _margin.SetAnchorsPreset(LayoutPreset.FullRect);
+        AddChild(_pad.Root);
+        _pad.Root.Visible = false;
 
-        AddChild(_margin);
-        SetAnchorsPreset(LayoutPreset.FullRect);
+        _modal = new ModalHost { OnClosed = CloseModal };
+        AddChild(_modal);
+        _modal.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+
+        SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
 
         session.Events.Message += OnMessage;
-        session.Events.PanelRequested += _tabs.ShowTab;
+        session.Events.PanelRequested += OnPanelRequested;
         session.Events.StateChanged += OnStateChanged;
     }
 
     public override void _Ready()
     {
-        GetWindow().MinSize = new Vector2I(360, 480);
+        GetWindow().MinSize = new Vector2I(480, 360);
     }
 
     private static SubViewportContainer BuildViewport(GameSession session, GameFrame frame)
@@ -88,22 +83,26 @@ public partial class Hud : Control
         sub.AddChild(new WorldView { Session = session });
         sub.AddChild(frame);
 
-        var container = new SubViewportContainer
-        {
-            Stretch = true,
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            CustomMinimumSize = new Vector2(320, 320 * 448f / 768f),
-        };
+        var container = new SubViewportContainer { Stretch = true };
         container.AddChild(sub);
         return container;
     }
 
-    private static PanelContainer FrameViewport(SubViewportContainer viewport)
+    private HBoxContainer BuildTopButtons()
     {
-        var panel = new PanelContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
-        panel.AddThemeStyleboxOverride("panel", UiTheme.Box(Palette.Ink, Palette.Line, 1));
-        panel.AddChild(viewport);
-        return panel;
+        var box = UiTheme.HBox(8);
+        box.AddChild(MenuButton("Diario", () => OpenPanel("log")));
+        box.AddChild(MenuButton("Misiones", () => OpenPanel("missions")));
+        box.AddChild(MenuButton("Inventario", () => OpenPanel("inventory")));
+        box.AddChild(MenuButton("Pausa", _session.TogglePause));
+        return box;
+    }
+
+    private static Button MenuButton(string text, System.Action onPressed)
+    {
+        var button = UiTheme.GhostButton(text, 12);
+        button.Pressed += onPressed;
+        return button;
     }
 
     private void OnMessage(string text, MessageKind kind)
@@ -112,56 +111,83 @@ public partial class Hud : Control
         _log.Rebuild(_session);
     }
 
-    private void OnStateChanged()
+    private void OnStateChanged() => _log.Rebuild(_session);
+
+    private void OnPanelRequested(string id) => OpenPanel(id);
+
+    public void ToggleStats() => _stats.Toggle();
+
+    /// <summary>Opens a panel inside the modal shell and freezes the simulation.</summary>
+    public void OpenPanel(string id)
     {
-        _log.Rebuild(_session);
+        if (!_session.State.Running) return;
+
+        var (title, content) = id switch
+        {
+            "nave" => ("Nave", _ship.Root),
+            "taller" => ("Taller", _workshop.Root),
+            "granja" => ("Granja", _farm.Root),
+            "log" => ("Bitácora", _log.Root),
+            "missions" => ("Objetivos", _goals.Root),
+            "inventory" => ("Inventario", _inventory.Root),
+            _ => (string.Empty, (Control)null!),
+        };
+        if (content == null) return;
+
+        _session.OpenModal();
+        _modal.Open(title, content);
+    }
+
+    public void CloseModal()
+    {
+        _modal.Close();
+        _session.CloseModal();
+    }
+
+    private void BuildDomeFromModal()
+    {
+        CloseModal();
+        _session.StartBuild();
     }
 
     public override void _Process(double delta)
     {
-        UpdateResponsive();
+        _stats.Tick(delta);
+        LayoutOverlays();
 
         _uiTimer += delta;
         if (_uiTimer < 0.12) return;
         _uiTimer = 0;
 
-        _topBar.Refresh(_session);
-        _vitals.Refresh(_session);
-        _hotbar.Refresh(_session);
-        _tabs.Refresh();
+        _stats.Refresh();
+        _inventory.Refresh();
+        _ship.Refresh();
+        _workshop.Refresh();
+        _farm.Refresh();
+        _goals.Refresh();
         _log.Rebuild(_session);
     }
 
-    private void UpdateResponsive()
+    private void LayoutOverlays()
     {
-        var width = Size.X > 0 ? Size.X : GetViewportRect().Size.X;
+        var size = Size.X > 0 ? Size : GetViewportRect().Size;
 
-        var mode = width >= 1040 ? 0 : width >= 760 ? 1 : 2;
-        if (mode != _mode)
+        _stats.Icon.ResetSize();
+        _stats.Icon.Position = new Vector2(0, size.Y * 0.5f - _stats.Icon.Size.Y / 2f);
+
+        _stats.Root.ResetSize();
+        var pw = _stats.Root.Size.X;
+        var x = -pw + _stats.Slide * (pw + 8f);
+        _stats.Root.Position = new Vector2(x, Mathf.Max(12, size.Y * 0.5f - _stats.Root.Size.Y / 2f));
+
+        _topButtons.ResetSize();
+        _topButtons.Position = new Vector2(size.X - _topButtons.Size.X - 12, 12);
+
+        _pad.Root.Visible = DisplayServer.IsTouchscreenAvailable();
+        if (_pad.Root.Visible)
         {
-            _mode = mode;
-            _stage.SetMode(mode == 0 ? StageLayout.Mode.Wide : StageLayout.Mode.Stacked);
-            _vitals.SetColumns(mode == 0 ? 1 : mode == 1 ? 4 : 2);
-            foreach (var control in _topBar.HideSmall) control.Visible = mode != 2;
-        }
-
-        var touch = mode == 2 || DisplayServer.IsTouchscreenAvailable();
-        _pad.Root.Visible = touch;
-        _hotbar.Keys.Visible = !touch;
-
-        var side = Mathf.Max(16, Mathf.RoundToInt((width - MaxContentWidth) * 0.5f));
-        if (side != _lastSideMargin)
-        {
-            _lastSideMargin = side;
-            _margin.AddThemeConstantOverride("margin_left", side);
-            _margin.AddThemeConstantOverride("margin_right", side);
-        }
-
-        var viewportWidth = _viewport.Size.X;
-        if (viewportWidth > 0 && Mathf.Abs(viewportWidth - _lastViewportWidth) > 1)
-        {
-            _lastViewportWidth = viewportWidth;
-            _viewport.CustomMinimumSize = new Vector2(0, viewportWidth * 448f / 768f);
+            _pad.Root.ResetSize();
+            _pad.Root.Position = new Vector2(size.X - _pad.Root.Size.X - 12, size.Y - _pad.Root.Size.Y - 12);
         }
     }
 }

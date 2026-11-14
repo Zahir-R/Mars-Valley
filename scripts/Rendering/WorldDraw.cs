@@ -179,6 +179,44 @@ public static class WorldDraw
         }
     }
 
+    /// <summary>An interactable base station (workbench, farm console) with a soft beacon.</summary>
+    public static void DrawStation(CanvasItem c, Station st, double clock)
+    {
+        var x = Mathf.Round(st.X);
+        var y = Mathf.Round(st.Y);
+
+        var glow = Palette.O2;
+        glow.A = 0.12f + 0.10f * (0.5f + 0.5f * Mathf.Sin((float)clock * 2f));
+        c.DrawCircle(new Vector2(x, y - 4), 17, glow);
+
+        Fill(c, x - 12, y + 5, 24, 4, new Color(0, 0, 0, 0.28f));
+
+        switch (st.Kind)
+        {
+            case StationKind.Workbench:
+                Fill(c, x - 14, y - 4, 28, 10, Color.FromHtml("#6d5a52"));
+                Fill(c, x - 14, y - 8, 28, 5, Color.FromHtml("#8a7568"));
+                Fill(c, x - 10, y - 13, 5, 6, Color.FromHtml("#c9c3b4"));
+                Fill(c, x + 3, y - 12, 4, 5, Color.FromHtml("#d0a24c"));
+                Fill(c, x - 13, y + 6, 3, 6, Color.FromHtml("#4a3a35"));
+                Fill(c, x + 10, y + 6, 3, 6, Color.FromHtml("#4a3a35"));
+                break;
+            case StationKind.Farm:
+                Fill(c, x - 9, y - 14, 18, 18, Color.FromHtml("#2f3a2a"));
+                Fill(c, x - 6, y - 11, 12, 9, Color.FromHtml("#6fbf4a"));
+                Fill(c, x - 2, y - 8, 4, 4, Color.FromHtml("#a8e07a"));
+                Fill(c, x - 9, y + 4, 18, 4, Color.FromHtml("#3a2a1a"));
+                break;
+            default:
+                Fill(c, x - 10, y - 12, 20, 16, Color.FromHtml("#2a3b3f"));
+                Fill(c, x - 6, y - 8, 12, 8, Palette.O2);
+                break;
+        }
+
+        Fill(c, x - 1, y - 20, 2, 6, Palette.O2);
+        Fill(c, x - 3, y - 23, 6, 6, Palette.O2);
+    }
+
     /// <summary>A loose item resting on the ground, gently bobbing with a soft glow.</summary>
     public static void DrawPickup(CanvasItem c, Pickup p, ItemDefinition def, double clock)
     {
@@ -382,6 +420,94 @@ public static class WorldDraw
 
         c.DrawString(Fonts.Display, new Vector2(gx + 4, gy - 8), "INVERNADERO",
             HorizontalAlignment.Left, -1, 9, Color.FromHtml("#e8e2d4"));
+    }
+
+    /// <summary>Translucent greenhouse dome covering its footprint.</summary>
+    public static void DrawDome(CanvasItem c, Dome dome, BalanceConfig b)
+    {
+        var cx = dome.X + dome.Width / 2f;
+        var cy = dome.Y + dome.Height / 2f;
+        var rx = dome.Width / 2f;
+        var ry = dome.Height / 2f;
+
+        Fill(c, dome.X + 2, dome.Y + dome.Height * 0.45f, dome.Width - 4, dome.Height * 0.5f,
+            Color.FromHtml("#2a1d18"));
+
+        var glass = new Color(143 / 255f, 211 / 255f, 244 / 255f, 0.18f);
+        var rim = Color.FromHtml("#8c8678");
+
+        const int segments = 40;
+        var poly = new Vector2[segments];
+        for (var i = 0; i < segments; i++)
+        {
+            var a = Mathf.Tau * i / segments;
+            poly[i] = new Vector2(cx + Mathf.Cos(a) * rx, cy + Mathf.Sin(a) * ry);
+        }
+        c.DrawColoredPolygon(poly, glass);
+        for (var i = 0; i < segments; i++)
+        {
+            c.DrawLine(poly[i], poly[(i + 1) % segments], rim, 2);
+        }
+        c.DrawLine(new Vector2(cx - rx, cy), new Vector2(cx + rx, cy), new Color(1, 1, 1, 0.12f), 1);
+    }
+
+    /// <summary>A single crop slot inside a dome, tinted by its plant and progress.</summary>
+    public static void DrawPlantSlot(CanvasItem c, Plot p, PlantDefinition? plant, BalanceConfig b, double clock)
+    {
+        var x = Mathf.Round(p.X);
+        var y = Mathf.Round(p.Y);
+        var s = b.PlotSize;
+
+        Fill(c, x, y, s, s, Color.FromHtml("#241812"));
+        Stroke(c, x, y, s, s, Color.FromHtml("#4a3124"), 1);
+
+        if (plant == null || p.State == PlotState.Empty)
+        {
+            Fill(c, x + s / 2f - 2, y + s / 2f - 2, 4, 4, Color.FromHtml("#3a2a1e"));
+            return;
+        }
+
+        var col = Palette.FromHex(plant.Color);
+        var midX = x + s / 2f;
+
+        switch (p.State)
+        {
+            case PlotState.Dry:
+                Fill(c, x + s / 2f - 3, y + s / 2f, 6, 3, col.Darkened(0.2f));
+                break;
+            case PlotState.Grow:
+                var progress = 1f - (float)(p.Time / Mathf.Max(1f, (float)plant.GrowTime));
+                var h = 4 + progress * (s - 10);
+                Fill(c, midX - 1, y + s - 6 - h, 2, h, Color.FromHtml("#5c8a3a"));
+                Fill(c, midX - 5, y + s - 8 - h, 5, 3, col);
+                Fill(c, midX + 1, y + s - 12 - h, 5, 3, col);
+                break;
+            default:
+                var bob = Mathf.Sin((float)clock * 2f + p.X) * 1f;
+                Fill(c, midX - 1, y + 4 + bob, 2, s - 10, Color.FromHtml("#5c8a3a"));
+                Fill(c, midX - 7, y + 6 + bob, 7, 5, col);
+                Fill(c, midX + 1, y + 2 + bob, 7, 5, col.Lightened(0.1f));
+                Fill(c, midX - 4, y - 1 + bob, 5, 4, col.Lightened(0.2f));
+                break;
+        }
+    }
+
+    /// <summary>Placement ghost shown while building; green when valid, red otherwise.</summary>
+    public static void DrawBuildGhost(CanvasItem c, float x, float y, BalanceConfig b, bool valid)
+    {
+        var color = valid ? new Color(0.55f, 0.9f, 0.6f, 0.22f) : new Color(0.95f, 0.35f, 0.3f, 0.22f);
+        var edge = valid ? new Color(0.55f, 0.95f, 0.65f, 0.9f) : new Color(1f, 0.4f, 0.35f, 0.9f);
+
+        Fill(c, x, y, b.DomeWidth, b.DomeHeight, color);
+        Stroke(c, x, y, b.DomeWidth, b.DomeHeight, edge, 2);
+
+        for (var r = 0; r < b.DomeSlotRows; r++)
+        for (var col = 0; col < b.DomeSlotColumns; col++)
+        {
+            var px = x + b.DomeSlotMarginX + col * (b.PlotSize + b.DomeSlotGap);
+            var py = y + b.DomeSlotMarginY + r * (b.PlotSize + b.DomeSlotGap);
+            Stroke(c, px, py, b.PlotSize, b.PlotSize, edge, 1);
+        }
     }
 
     public static void DrawRing(CanvasItem c, float x, float y, float w, float h)

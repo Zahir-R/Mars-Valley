@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("NasaValley.Domain")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2b6e2d59a1c100e459baad9e9fb1100741507453")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b1db063518f25e469f134fe2001edcc12cf36a78")]
 [assembly: System.Reflection.AssemblyProductAttribute("NasaValley.Domain")]
 [assembly: System.Reflection.AssemblyTitleAttribute("NasaValley.Domain")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

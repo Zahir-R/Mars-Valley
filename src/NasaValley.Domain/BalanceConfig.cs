@@ -13,9 +13,36 @@ public sealed class BalanceConfig
     public int GridHeight { get; init; } = 14;
     public int ViewWidth => GridWidth * TileSize;   // 768
     public int ViewHeight => GridHeight * TileSize; // 448
-    public int PlotSize { get; init; } = 40;
-    public int PlotColumns { get; init; } = 4;
+    public int PlotSize { get; init; } = 34;
+    public int PlotColumns { get; init; } = 2;
     public int PlotRows { get; init; } = 2;
+
+    // Domes (player-built greenhouses with plot slots)
+    public int DomeWidth { get; init; } = 140;
+    public int DomeHeight { get; init; } = 104;
+    public int DomeSlotColumns { get; init; } = 2;
+    public int DomeSlotRows { get; init; } = 2;
+    public float DomeSlotGap { get; init; } = 10f;
+    public float DomeSlotMarginX { get; init; } = 18f;
+    public float DomeSlotMarginY { get; init; } = 18f;
+
+    public double DomeStartEnergy { get; init; } = 40;
+    public double DomeMaxEnergy { get; init; } = 100;
+    public double DomeTargetTempC { get; init; } = 22;
+    public double DomeSolarRate { get; init; } = 2.2;
+    public double DomeEnergyPerDegreePerSec { get; init; } = 0.02;
+
+    public IReadOnlyDictionary<string, int> DomeCost { get; init; } = new Dictionary<string, int>
+    {
+        ["hierro"] = 4,
+        ["silicio"] = 4,
+        ["roca"] = 6,
+    };
+
+    // Environment / weather coupling
+    public double StormLightFactor { get; init; } = 0.45;
+    public double DayNightSwing { get; init; } = 12;
+    public double StormTempDrop { get; init; } = 6;
 
     // Ship / greenhouse rectangles (logical world units)
     public float ShipX { get; init; } = 36;
@@ -45,8 +72,15 @@ public sealed class BalanceConfig
     public float NodeInteractRadius { get; init; } = 46f;
     public float PlotInteractRadius { get; init; } = 34f;
     public float PickupInteractRadius { get; init; } = 40f;
+    public float StationInteractRadius { get; init; } = 40f;
     public float ShipTargetRadius { get; init; } = 40f;
     public float ShipNearRadius { get; init; } = 48f;
+
+    // Base stations (world positions). The ship itself is the ship upgrades station.
+    public float WorkbenchX { get; init; } = 240f;
+    public float WorkbenchY { get; init; } = 250f;
+    public float FarmConsoleX { get; init; } = 250f;
+    public float FarmConsoleY { get; init; } = 320f;
 
     // Simulation clock
     public double SolLength { get; init; } = 240;

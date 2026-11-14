@@ -21,6 +21,8 @@ public sealed class GameSession : IGameContext
         NodeDatabase? nodes = null,
         PartDatabase? parts = null,
         RecipeDatabase? recipes = null,
+        PlantDatabase? plants = null,
+        AreaDatabase? areas = null,
         MissionSet? missions = null,
         IRandom? rng = null,
         GameEvents? events = null)
@@ -30,6 +32,8 @@ public sealed class GameSession : IGameContext
         Nodes = nodes ?? NodeDatabase.CreateDefault();
         Parts = parts ?? PartDatabase.CreateDefault();
         Recipes = recipes ?? RecipeDatabase.CreateDefault();
+        Plants = plants ?? PlantDatabase.CreateDefault();
+        Areas = areas ?? AreaDatabase.CreateDefault();
         Missions = missions ?? MissionSet.CreateDefault();
         Rng = rng ?? new SystemRandom();
         Events = events ?? new GameEvents();
@@ -42,6 +46,8 @@ public sealed class GameSession : IGameContext
     public NodeDatabase Nodes { get; }
     public PartDatabase Parts { get; }
     public RecipeDatabase Recipes { get; }
+    public PlantDatabase Plants { get; }
+    public AreaDatabase Areas { get; }
     public MissionSet Missions { get; }
     public IRandom Rng { get; }
     public GameEvents Events { get; }
@@ -100,35 +106,51 @@ public sealed class GameSession : IGameContext
 
     public void Tick(in PlayerIntent intent, double dt)
     {
-        if (State.Flow != FlowState.Playing) return;
+        if (State.Flow != FlowState.Playing || State.ModalOpen) return;
 
         State.Time += dt;
         MovementSystem.Update(this, intent, dt);
         State.ActionCooldown -= dt;
 
-        var target = InteractionSystem.FindTarget(State, Balance);
-        CurrentTarget = target;
-
-        switch (target)
+        if (State.Building)
         {
-            case NodeTarget nt:
-                if (intent.InteractHeld && State.ActionCooldown <= 0)
-                {
-                    new MineNodeCommand(nt.Node).Execute(this);
-                    State.ActionCooldown = State.Vitals.Energy <= 0
-                        ? Balance.MineCooldownTired
-                        : Balance.MineCooldownNormal;
-                }
-                break;
-            case ShipTarget when intent.InteractPressed:
-                Events.RaisePanelRequested("nave");
-                break;
-            case not null when intent.InteractPressed:
-                new InteractCommand(target).Execute(this);
-                break;
+            BuildSystem.Update(this, intent);
+        }
+        else
+        {
+            var target = InteractionSystem.FindTarget(State, Balance);
+            CurrentTarget = target;
+
+            switch (target)
+            {
+                case NodeTarget nt:
+                    if (intent.InteractHeld && State.ActionCooldown <= 0)
+                    {
+                        new MineNodeCommand(nt.Node).Execute(this);
+                        State.ActionCooldown = State.Vitals.Energy <= 0
+                            ? Balance.MineCooldownTired
+                            : Balance.MineCooldownNormal;
+                    }
+                    break;
+                case StationTarget st when intent.InteractPressed:
+                    Events.RaisePanelRequested(st.Station.Kind switch
+                    {
+                        StationKind.Workbench => "taller",
+                        StationKind.Farm => "granja",
+                        _ => "nave",
+                    });
+                    break;
+                case ShipTarget when intent.InteractPressed:
+                    Events.RaisePanelRequested("nave");
+                    break;
+                case not null when intent.InteractPressed:
+                    new InteractCommand(target).Execute(this);
+                    break;
+            }
         }
 
         NodeSystem.Update(this, dt);
+        DomeSystem.Update(this, dt);
         FarmingSystem.Update(this, dt);
         WeatherSystem.Update(this, dt);
         SurvivalSystem.Update(this, dt);
@@ -148,6 +170,7 @@ public sealed class GameSession : IGameContext
     public void Execute(IGameCommand command) => command.Execute(this);
 
     public void Eat() => new EatCommand().Execute(this);
+    public void Eat(string itemId) => new EatItemCommand(itemId).Execute(this);
     public void Repair(string partId) => new RepairPartCommand(partId).Execute(this);
     public void RefillO2() => new RefillO2Command().Execute(this);
     public void MeltIce() => new MeltIceCommand().Execute(this);
@@ -156,6 +179,34 @@ public sealed class GameSession : IGameContext
     {
         if (Recipes.TryGet(recipeId, out var recipe)) new CraftCommand(recipe).Execute(this);
     }
+
+    /// <summary>Freezes the simulation while a UI modal is open (flow stays Playing).</summary>
+    public void OpenModal()
+    {
+        if (State.Flow == FlowState.Playing) State.ModalOpen = true;
+    }
+
+    public void CloseModal() => State.ModalOpen = false;
+
+    public void SetCrop(string plantId)
+    {
+        if (Plants.TryGet(plantId, out _)) State.SelectedCrop = plantId;
+    }
+
+    /// <summary>Chooses which food item F eats first. Must be an item tagged "Comida".</summary>
+    public void SetFoodSource(string itemId)
+    {
+        if (Items.TryGet(itemId, out var def) && def.HasTag("Comida")) State.FoodSource = itemId;
+    }
+
+    public void StartBuild()
+    {
+        if (State.Flow == FlowState.Playing && !State.ModalOpen) State.Building = true;
+    }
+
+    public void CancelBuild() => State.Building = false;
+
+    public bool CanPlaceDome() => BuildSystem.CanPlaceAt(this, State.BuildX, State.BuildY, out _);
 
     // ---- IGameContext ---------------------------------------------------------
 
@@ -193,17 +244,12 @@ public sealed class GameSession : IGameContext
         s.Inventory["semillas"] = Balance.StartSeeds;
         s.Inventory["papas"] = Balance.StartPotatoes;
         s.Inventory["fijaciones"] = Balance.StartFijaciones;
+        s.FoodSource = "papas";
 
         s.Vitals.O2 = Balance.StartO2;
         s.Vitals.Energy = Balance.StartEnergy;
         s.Vitals.Food = Balance.StartFood;
         s.Vitals.Health = Balance.StartHealth;
-
-        for (var r = 0; r < Balance.PlotRows; r++)
-        for (var c = 0; c < Balance.PlotColumns; c++)
-        {
-            s.Plots.Add(new Plot(36 + c * 46, 326 + r * 46));
-        }
 
         foreach (var spawn in NodeDatabase.DefaultSpawns)
         {
@@ -214,6 +260,9 @@ public sealed class GameSession : IGameContext
         {
             s.Pickups.Add(new Pickup(spawn.ItemId, spawn.Amount, spawn.X, spawn.Y));
         }
+
+        s.Stations.Add(new Station(StationKind.Workbench, Balance.WorkbenchX, Balance.WorkbenchY));
+        s.Stations.Add(new Station(StationKind.Farm, Balance.FarmConsoleX, Balance.FarmConsoleY));
 
         s.Storm.Next = Balance.FirstStormDelay;
         return s;

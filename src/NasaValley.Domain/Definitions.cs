@@ -105,6 +105,14 @@ public sealed class ItemDatabase
             "Semillas de papa para el invernadero.", Tags: new[] { "Cultivo" }),
         new ItemDefinition("papas", "Papas", "#d9a05b", ItemCategory.Consumable,
             "Alimento cultivado en el invernadero.", Tags: new[] { "Comida" }),
+        new ItemDefinition("lechuga", "Lechuga", "#7bd06a", ItemCategory.Consumable,
+            "Hoja verde de ciclo corto cultivada en cúpula.", Tags: new[] { "Comida" }),
+        new ItemDefinition("rabano", "Rábano", "#d6537a", ItemCategory.Consumable,
+            "Raíz comestible de crecimiento rápido.", Tags: new[] { "Comida" }),
+        new ItemDefinition("tomate", "Tomate", "#e0563d", ItemCategory.Consumable,
+            "Fruto de cúpula que exige más luz y calor.", Tags: new[] { "Comida" }),
+        new ItemDefinition("trigo", "Trigo enano", "#e3c46b", ItemCategory.Consumable,
+            "Grano básico cultivado en cámara cerrada.", Tags: new[] { "Comida" }),
 
         // --- raw geology (Fase 2/3) ----------------------------------------
         new ItemDefinition("roca", "Fragmentos de roca", "#9a8f86", ItemCategory.NaturalResource,

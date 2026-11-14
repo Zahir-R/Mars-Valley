@@ -18,6 +18,14 @@ public enum MessageKind
     Good,
 }
 
+/// <summary>Interactable base stations that open UI modals.</summary>
+public enum StationKind
+{
+    Ship,
+    Workbench,
+    Farm,
+}
+
 public enum PlotState
 {
     Empty,

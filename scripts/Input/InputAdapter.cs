@@ -20,6 +20,8 @@ public sealed class InputAdapter
     public const string Interact = "interact";
     public const string Eat = "eat";
     public const string Pause = "pause";
+    public const string Build = "build";
+    public const string Stats = "stats";
 
     public static void RegisterActions()
     {
@@ -30,6 +32,8 @@ public sealed class InputAdapter
         Add(Interact, Key.E);
         Add(Eat, Key.F);
         Add(Pause, Key.P, Key.Escape);
+        Add(Build, Key.B);
+        Add(Stats, Key.Tab);
     }
 
     private static void Add(string action, params Key[] keys)
@@ -65,6 +69,8 @@ public sealed class InputAdapter
 
     public bool PausePressed() => Godot.Input.IsActionJustPressed(Pause);
     public bool EatPressed() => Godot.Input.IsActionJustPressed(Eat);
+    public bool BuildPressed() => Godot.Input.IsActionJustPressed(Build);
+    public bool StatsPressed() => Godot.Input.IsActionJustPressed(Stats);
 
     public void Clear()
     {

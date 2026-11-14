@@ -38,7 +38,38 @@ public sealed class Plot
     public float X { get; }
     public float Y { get; }
     public PlotState State { get; set; } = PlotState.Empty;
+    public string PlantId { get; set; } = "papa";
     public double Time { get; set; }
+    public Dome? Dome { get; set; }
+}
+
+/// <summary>
+/// A built greenhouse. Holds several plot slots and an energy buffer that keeps the
+/// internal temperature at the target setpoint, offsetting the area's external cold.
+/// </summary>
+public sealed class Dome
+{
+    public Dome(int id, float x, float y, float width, float height)
+    {
+        Id = id;
+        X = x;
+        Y = y;
+        Width = width;
+        Height = height;
+    }
+
+    public int Id { get; }
+    public float X { get; }
+    public float Y { get; }
+    public float Width { get; }
+    public float Height { get; }
+    public double Energy { get; set; }
+    public double InternalTempC { get; set; }
+    public double ExternalTempC { get; set; }
+    public List<Plot> Plots { get; } = new();
+
+    public float CenterX => X + Width / 2f;
+    public float CenterY => Y + Height / 2f;
 }
 
 public sealed class ResourceNode
@@ -58,6 +89,21 @@ public sealed class ResourceNode
     public int Progress { get; set; }
     public double Regen { get; set; }
     public double Shake { get; set; }
+}
+
+/// <summary>An interactable base station (workbench, farm console, …) that opens a modal.</summary>
+public sealed class Station
+{
+    public Station(StationKind kind, float x, float y)
+    {
+        Kind = kind;
+        X = x;
+        Y = y;
+    }
+
+    public StationKind Kind { get; }
+    public float X { get; }
+    public float Y { get; }
 }
 
 /// <summary>A loose item on the ground that is collected directly on interaction.</summary>
@@ -148,6 +194,20 @@ public sealed class GameState
     public List<Plot> Plots { get; } = new();
     public List<ResourceNode> Nodes { get; } = new();
     public List<Pickup> Pickups { get; } = new();
+    public List<Station> Stations { get; } = new();
+    public List<Dome> Domes { get; } = new();
+
+    /// <summary>True while a UI modal is open; the simulation is frozen but the flow stays Playing.</summary>
+    public bool ModalOpen { get; set; }
+
+    /// <summary>True while placing a dome; the ghost follows the player and E confirms.</summary>
+    public bool Building { get; set; }
+    public float BuildX { get; set; }
+    public float BuildY { get; set; }
+    public string SelectedCrop { get; set; } = "lechuga";
+
+    /// <summary>Item id currently chosen as the food source (eaten first with F).</summary>
+    public string? FoodSource { get; set; }
     public Storm Storm { get; } = new();
     public RunStats Stats { get; } = new();
     public WarningFlags Flags { get; } = new();
