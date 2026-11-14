@@ -20,3 +20,7 @@ mono_crash.*.json
 bin/
 obj/
 .direnv/
+
+# Mars data pipeline (downloaded raw products)
+tools/mars_data/raw/
+tools/mars_data/.venv/

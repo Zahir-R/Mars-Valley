@@ -141,7 +141,10 @@ public sealed class ItemDatabase
         // --- structures -----------------------------------------------------
         new ItemDefinition("cupula", "Cúpula almacenada", "#8fd3f4", ItemCategory.Structure,
             "Cúpula de invernadero plegada. Colócala desde el inventario sin gastar materiales; al guardarla se pierde lo que hubiera dentro.",
-            Tags: new[] { "Estructura", "Dome" }),
+            Tags: new[] { "Estructura", "Dome", "Colocable" }),
+        new ItemDefinition("parcela", "Bandeja de cultivo", "#c9a45a", ItemCategory.Structure,
+            "Bandeja abierta para cultivar al descubierto. Solo las plantas resistentes cosechan en un bioma cálido; la cúpula es más segura.",
+            Tags: new[] { "Estructura", "Colocable", "Agricultura" }),
     });
 }
 
@@ -169,50 +172,6 @@ public sealed class NodeDatabase
         new NodeDefinition("regolith", "regolito", "#b98c6a", RequiredToolTag: "Excavacion", HitsPerUnit: 1),
         new NodeDefinition("basalt", "basalto", "#5b5f66", RequiredToolTag: "Mineria", HitsPerUnit: 2),
     });
-
-    /// <summary>Fixed world spawns, ported verbatim from the original NODES table plus new geology.</summary>
-    public static IReadOnlyList<NodeSpawn> DefaultSpawns { get; } = new[]
-    {
-        new NodeSpawn("ice", 350, 70),
-        new NodeSpawn("ice", 398, 98),
-        new NodeSpawn("ice", 655, 365),
-        new NodeSpawn("ice", 700, 330),
-        new NodeSpawn("ice", 520, 400),
-        new NodeSpawn("iron", 470, 200),
-        new NodeSpawn("iron", 522, 228),
-        new NodeSpawn("iron", 690, 84),
-        new NodeSpawn("iron", 600, 112),
-        new NodeSpawn("iron", 330, 350),
-        new NodeSpawn("iron", 300, 235),
-        new NodeSpawn("si", 272, 150),
-        new NodeSpawn("si", 560, 320),
-        new NodeSpawn("si", 420, 300),
-        new NodeSpawn("si", 712, 214),
-        new NodeSpawn("si", 610, 200),
-
-        // Rock is everywhere and needs no tool: the first thing the player gathers.
-        new NodeSpawn("rock", 300, 92),
-        new NodeSpawn("rock", 455, 132),
-        new NodeSpawn("rock", 712, 132),
-        new NodeSpawn("rock", 522, 360),
-        // Regolith requires a shovel.
-        new NodeSpawn("regolith", 250, 262),
-        new NodeSpawn("regolith", 332, 286),
-        new NodeSpawn("regolith", 612, 384),
-        // Basalt requires a mining tool (hammer/pick).
-        new NodeSpawn("basalt", 612, 180),
-        new NodeSpawn("basalt", 720, 306),
-        new NodeSpawn("basalt", 400, 62),
-    };
-
-    /// <summary>Loose items near the landing site so the first tool is reachable quickly.</summary>
-    public static IReadOnlyList<PickupSpawn> DefaultPickups { get; } = new[]
-    {
-        new PickupSpawn("fijaciones", 2, 272, 226),
-        new PickupSpawn("fijaciones", 2, 232, 242),
-        new PickupSpawn("mango", 1, 286, 206),
-        new PickupSpawn("roca", 3, 236, 202),
-    };
 }
 
 public sealed class PartDatabase

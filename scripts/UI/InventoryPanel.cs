@@ -26,7 +26,7 @@ public sealed class InventoryPanel
     public Control Root { get; }
 
     private readonly GameSession _session;
-    private readonly Action? _onPlaceDome;
+    private readonly Action<string>? _onPlace;
     private readonly Dictionary<string, Button> _tabs = new();
     private readonly Dictionary<string, Button> _rows = new();
     private readonly VBoxContainer _list;
@@ -40,10 +40,10 @@ public sealed class InventoryPanel
     private string? _builtCategory;
     private string? _actionsFor;
 
-    public InventoryPanel(GameSession session, Action? onPlaceDome = null)
+    public InventoryPanel(GameSession session, Action<string>? onPlace = null)
     {
         _session = session;
-        _onPlaceDome = onPlaceDome;
+        _onPlace = onPlace;
 
         var tabBar = new HFlowContainer();
         tabBar.AddThemeConstantOverride("h_separation", 4);
@@ -205,10 +205,10 @@ public sealed class InventoryPanel
             source.Pressed += () => { _session.SetFoodSource(def.Id); Refresh(); };
             _actions.AddChild(source);
         }
-        else if (def.Id == BuildSystem.StoredDomeItem && _session.State.Inventory[def.Id] > 0)
+        else if (def.HasTag("Colocable") && _session.State.Inventory[def.Id] > 0)
         {
-            var place = UiTheme.PrimaryButton("Colocar cúpula", 13);
-            place.Pressed += () => _onPlaceDome?.Invoke();
+            var place = UiTheme.PrimaryButton("Colocar", 13);
+            place.Pressed += () => _onPlace?.Invoke(def.Id);
             _actions.AddChild(place);
         }
         else if (def.Category == ItemCategory.Tool)
@@ -220,9 +220,7 @@ public sealed class InventoryPanel
     }
 
     private string ActionKey(ItemDefinition def) =>
-        def.Id == BuildSystem.StoredDomeItem
-            ? def.Id + ":" + (_session.State.Inventory[def.Id] > 0)
-            : def.Id;
+        def.HasTag("Colocable") ? def.Id + ":" + (_session.State.Inventory[def.Id] > 0) : def.Id;
 
     private static string GroupOf(ItemDefinition def) => def.Category switch
     {

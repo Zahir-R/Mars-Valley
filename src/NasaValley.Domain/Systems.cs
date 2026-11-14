@@ -125,12 +125,12 @@ public static class DomeSystem
 
 		foreach (var dome in s.Domes)
 		{
-			var area = ctx.Areas.At(dome.CenterX, dome.CenterY);
-			var external = EnvironmentSystem.ExternalTemp(area, s, b);
+			var biome = GeneratedBiomes.AtWorld(dome.CenterX, dome.CenterY);
+			var external = EnvironmentSystem.ExternalTemp(biome, s, b);
 			dome.ExternalTempC = external;
 
 			// Panels (plus a small passive trickle) charge the dome's buffer.
-			var generation = (b.DomePassiveSolar + dome.PanelCount * b.SolarPanelOutput) * light * area.SolarFactor;
+			var generation = (b.DomePassiveSolar + dome.PanelCount * b.SolarPanelOutput) * light * biome.SolarFactor;
 			dome.Energy = Math.Min(dome.EnergyCapacity(b), dome.Energy + generation * dt);
 
 			var needed = Math.Abs(external - b.DomeTargetTempC) * b.DomeEnergyPerDegreePerSec * dt;
@@ -162,7 +162,8 @@ public static class FarmingSystem
 			if (plot.State != PlotState.Grow) continue;
 			if (!ctx.Plants.TryGet(plot.PlantId, out var plant)) continue;
 
-			var temp = plot.Dome?.InternalTempC ?? b.DomeTargetTempC;
+			var temp = plot.Dome?.InternalTempC
+				?? EnvironmentSystem.ExternalTemp(GeneratedBiomes.AtWorld(plot.X + b.PlotSize / 2f, plot.Y + b.PlotSize / 2f), s, b);
 			if (light < plant.MinLight) continue;
 			if (temp < plant.MinTempC || temp > plant.MaxTempC) continue;
 
@@ -183,7 +184,22 @@ public static class FarmingSystem
 		if (!ctx.Plants.TryGet(plot.PlantId, out var plant)) return "Cultivo desconocido";
 
 		var light = EnvironmentSystem.Light(ctx.State, ctx.Balance);
-		var temp = plot.Dome?.InternalTempC ?? ctx.Balance.DomeTargetTempC;
+		var temp = plot.Dome?.InternalTempC
+			?? EnvironmentSystem.ExternalTemp(GeneratedBiomes.AtWorld(plot.X + ctx.Balance.PlotSize / 2f, plot.Y + ctx.Balance.PlotSize / 2f), ctx.State, ctx.Balance);
+		if (light < plant.MinLight) return "Falta luz";
+		if (temp < plant.MinTempC) return "Hace frío";
+		if (temp > plant.MaxTempC) return "Hace calor";
+		return string.Empty;
+	}
+
+	/// <summary>Why <paramref name="plantId"/> would not grow right now on <paramref name="plot"/> (empty string if it would).</summary>
+	public static string GrowthBlockerNow(IGameContext ctx, Plot plot, string plantId)
+	{
+		if (!ctx.Plants.TryGet(plantId, out var plant)) return "Cultivo desconocido";
+
+		var light = EnvironmentSystem.Light(ctx.State, ctx.Balance);
+		var temp = plot.Dome?.InternalTempC
+			?? EnvironmentSystem.ExternalTemp(GeneratedBiomes.AtWorld(plot.X + ctx.Balance.PlotSize / 2f, plot.Y + ctx.Balance.PlotSize / 2f), ctx.State, ctx.Balance);
 		if (light < plant.MinLight) return "Falta luz";
 		if (temp < plant.MinTempC) return "Hace frío";
 		if (temp > plant.MaxTempC) return "Hace calor";

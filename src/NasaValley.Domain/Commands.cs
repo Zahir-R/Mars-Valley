@@ -126,12 +126,14 @@ public sealed class PlantCommand(Plot plot, string plantId) : IGameCommand
         var s = ctx.State;
         if (!ctx.Plants.TryGet(plantId, out var plant)) return;
 
-        // Crops can only be planted inside a dome's oxygen-safe footprint.
-        if (plot.Dome == null ||
-            !SafeZones.Contains(plot.Dome, plot.X + ctx.Balance.PlotSize / 2f, plot.Y + ctx.Balance.PlotSize / 2f))
+        if (plot.Dome != null)
         {
-            ctx.Say("Solo puedes plantar dentro de una cúpula.", MessageKind.Warn);
-            return;
+            // Crops survive best inside a pressure-safe dome; open trays are riskier.
+            if (!SafeZones.Contains(plot.Dome, plot.X + ctx.Balance.PlotSize / 2f, plot.Y + ctx.Balance.PlotSize / 2f))
+            {
+                ctx.Say("Solo puedes plantar dentro de una cúpula.", MessageKind.Warn);
+                return;
+            }
         }
 
         if (s.Inventory["semillas"] < 1)

@@ -16,7 +16,7 @@ public class SimulationTests
     public void MiningAddsItemAndConsumesEnergy()
     {
         var session = NewSession();
-        var node = session.State.Nodes[0];
+        var node = session.State.Nodes.First(n => n.Type == "ice");
         session.State.Px = node.X;
         session.State.Py = node.Y;
         var energyBefore = session.State.Vitals.Energy;

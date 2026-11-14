@@ -102,7 +102,7 @@ public class OccupancyTests
         ClearSceneObjects(session);
         GiveDomeCost(session);
 
-        Assert.False(BuildSystem.CanPlaceAt(session, 64, 32, out var reason));
+        Assert.False(BuildSystem.CanPlaceAt(session, session.Balance.ShipX, session.Balance.ShipY, out var reason));
         Assert.Contains("nave", reason);
     }
 

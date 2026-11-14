@@ -22,6 +22,7 @@ public partial class Hud : Control
     private readonly WorkshopPanel _workshop;
     private readonly GoalsPanel _goals;
     private readonly DomePanel _dome;
+    private readonly PlantPanel _plant;
     private readonly StatsDrawer _stats;
     private readonly TouchPad _pad;
     private readonly SubViewportContainer _viewport;
@@ -41,11 +42,12 @@ public partial class Hud : Control
         AddChild(_viewport);
         _viewport.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
 
-        _inventory = new InventoryPanel(session, BuildDomeFromModal);
+        _inventory = new InventoryPanel(session, PlaceItem);
         _ship = new ShipPanel(session);
         _workshop = new WorkshopPanel(session);
         _goals = new GoalsPanel(session);
         _dome = new DomePanel(session, CloseModal);
+        _plant = new PlantPanel(session, CloseModal);
         _pad = new TouchPad(input, session.Eat);
         _stats = new StatsDrawer(session, ToggleStats);
 
@@ -89,6 +91,12 @@ public partial class Hud : Control
         GetWindow().MinSize = new Vector2I(480, 360);
     }
 
+    private (string, Control) PlantPanelFor(Plot? plot)
+    {
+        _plant.SetPlot(plot);
+        return ("Plantar", _plant.Root);
+    }
+
     private static SubViewportContainer BuildViewport(GameSession session, GameFrame frame)
     {
         var sub = new SubViewport
@@ -98,11 +106,21 @@ public partial class Hud : Control
             TransparentBg = false,
         };
         sub.AddChild(new WorldView { Session = session });
-        sub.AddChild(frame);
+
+        var overlays = new CanvasLayer { Name = "Overlays" };
+        overlays.AddChild(frame);
+        frame.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+        sub.AddChild(overlays);
 
         var container = new SubViewportContainer { Stretch = true };
         container.AddChild(sub);
         return container;
+    }
+
+    private void PlaceItem(string itemId)
+    {
+        CloseModal();
+        _session.StartPlacement(itemId);
     }
 
     private HBoxContainer BuildTopButtons()
@@ -204,6 +222,7 @@ public partial class Hud : Control
         {
             "nave" => ("Nave", _ship.Root),
             "taller" => ("Taller", _workshop.Root),
+            "plant" => PlantPanelFor(_session.State.ActivePlot),
             "log" => ("Bitácora", _log.Root),
             "missions" => ("Objetivos", _goals.Root),
             "inventory" => ("Inventario", _inventory.Root),
@@ -243,6 +262,7 @@ public partial class Hud : Control
         _workshop.Refresh();
         _goals.Refresh();
         _dome.Refresh();
+        _plant.Refresh();
         _log.Rebuild(_session);
     }
 
@@ -269,3 +289,4 @@ public partial class Hud : Control
         }
     }
 }
+

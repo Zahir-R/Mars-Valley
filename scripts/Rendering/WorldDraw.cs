@@ -505,6 +505,17 @@ public static class WorldDraw
         }
     }
 
+    /// <summary>Placement ghost for an open-air crop tray; green when valid, red otherwise.</summary>
+    public static void DrawFieldGhost(CanvasItem c, float x, float y, BalanceConfig b, bool valid)
+    {
+        var color = valid ? new Color(0.55f, 0.9f, 0.6f, 0.22f) : new Color(0.95f, 0.35f, 0.3f, 0.22f);
+        var edge = valid ? new Color(0.55f, 0.95f, 0.65f, 0.9f) : new Color(1f, 0.4f, 0.35f, 0.9f);
+
+        Fill(c, x, y, b.PlotSize, b.PlotSize, color);
+        Stroke(c, x, y, b.PlotSize, b.PlotSize, edge, 2);
+        Fill(c, x + 6, y + 6, b.PlotSize - 12, b.PlotSize - 12, color);
+    }
+
     public static void DrawRing(CanvasItem c, float x, float y, float w, float h)
     {
         var color = Palette.O2;

@@ -139,14 +139,14 @@ public sealed class DomePanel
         if (_confirmDomeId != -1 && _confirmDomeId != dome.Id) _confirmDomeId = -1;
 
         var b = _session.Balance;
-        var area = _session.Areas.At(dome.CenterX, dome.CenterY);
+        var biome = GeneratedBiomes.AtWorld(dome.CenterX, dome.CenterY);
         var light = EnvironmentSystem.Light(_session.State, b);
         var lightPct = Mathf.RoundToInt((float)light * 100);
-        var generation = (b.DomePassiveSolar + dome.PanelCount * b.SolarPanelOutput) * light * area.SolarFactor;
+        var generation = (b.DomePassiveSolar + dome.PanelCount * b.SolarPanelOutput) * light * biome.SolarFactor;
         var slots = DomeLayout.SlotCount(b);
         var free = slots - dome.Plots.Count - dome.Fixtures.Count;
 
-        _title.Text = $"Cúpula {dome.Id} · nivel {dome.Level} · {area.Name}";
+        _title.Text = $"Cúpula {dome.Id} · nivel {dome.Level} · {biome.Name}";
         _stats.Text = $"Interior {dome.InternalTempC:0}°C · Exterior {dome.ExternalTempC:0}°C · Luz {lightPct}%";
         _detail.Text =
             $"Energía {dome.Energy:0}/{dome.EnergyCapacity(b):0} · Generación +{generation:0.0}/s · Huecos libres {free}";

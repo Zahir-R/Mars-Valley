@@ -39,6 +39,10 @@ public static class WorldOccupancy
     public static Rect PlacementRect(BalanceConfig b, float x, float y) =>
         new(x, y, b.DomeWidth, b.DomeHeight);
 
+    /// <summary>Rect an arbitrary structure would occupy at (x, y).</summary>
+    public static Rect PlacementRect(BalanceConfig b, float x, float y, float width, float height) =>
+        new(x, y, width, height);
+
     public static Rect PlacementTerminalRect(BalanceConfig b, float x, float y) =>
         new(x + b.DomeWidth / 2f - 14, y + b.DomeHeight + 2, 28, 18);
 
@@ -91,6 +95,16 @@ public static class WorldOccupancy
             if (rect.Overlaps(DomeRect(dome)) || rect.Overlaps(TerminalRect(dome)))
             {
                 blocker = "otra cúpula";
+                return false;
+            }
+        }
+
+        foreach (var plot in s.Plots)
+        {
+            var plotRect = new Rect(plot.X, plot.Y, b.PlotSize, b.PlotSize);
+            if (rect.Overlaps(plotRect))
+            {
+                blocker = "otra bandeja";
                 return false;
             }
         }

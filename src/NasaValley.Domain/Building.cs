@@ -41,16 +41,33 @@ public static class BuildSystem
 {
     public const string StoredDomeItem = "cupula";
 
-    public static float Snap(BalanceConfig b, float v) =>
-        MathF.Floor(v / b.TileSize) * b.TileSize;
+    public static float Snap(float v) =>
+        MathF.Floor(v / GeneratedBiomes.TileSize) * GeneratedBiomes.TileSize;
 
     /// <summary>Updates the ghost to follow the player, and places it on interact.</summary>
     public static void Update(IGameContext ctx, in PlayerIntent intent)
     {
         var s = ctx.State;
         var b = ctx.Balance;
-        s.BuildX = Snap(b, s.Px - b.DomeWidth / 2f);
-        s.BuildY = Snap(b, s.Py - b.DomeHeight / 2f);
+
+        if (s.PlacingItem == "parcela")
+        {
+            s.BuildX = Snap(s.Px - b.PlotSize / 2f);
+            s.BuildY = Snap(s.Py - b.PlotSize / 2f);
+
+            if (!intent.InteractPressed) return;
+
+            if (!TryPlaceField(ctx, s.BuildX, s.BuildY, out var fieldReason))
+            {
+                ctx.Say(fieldReason, MessageKind.Warn);
+                return;
+            }
+            ctx.Say("Colocas una bandeja de cultivo en el terreno.", MessageKind.Good);
+            return;
+        }
+
+        s.BuildX = Snap(s.Px - b.DomeWidth / 2f);
+        s.BuildY = Snap(s.Py - b.DomeHeight / 2f);
 
         if (!intent.InteractPressed) return;
 
@@ -124,15 +141,62 @@ public static class BuildSystem
         var dome = new Dome(id, x, y, b.DomeWidth, b.DomeHeight)
         {
             InternalTempC = b.DomeTargetTempC,
-            ExternalTempC = EnvironmentSystem.ExternalTemp(ctx.Areas.At(x + b.DomeWidth / 2f, y + b.DomeHeight / 2f), s, b),
+            ExternalTempC = EnvironmentSystem.ExternalTemp(GeneratedBiomes.AtWorld(x + b.DomeWidth / 2f, y + b.DomeHeight / 2f), s, b),
         };
         dome.Energy = Math.Min(b.DomeStartEnergy, dome.EnergyCapacity(b));
 
         s.Domes.Add(dome);
         s.Building = false;
         s.MovingDomeId = null;
+        s.PlacingItem = null;
         ctx.Say(usedStored ? "Colocas una cúpula almacenada." : "Construyes una cúpula de invernadero vacía.",
             MessageKind.Good);
+        return true;
+    }
+
+    /// <summary>Places an open-air crop tray on the nearest snapped cell.</summary>
+    public static bool CanPlaceField(IGameContext ctx, float x, float y, out string reason)
+    {
+        var s = ctx.State;
+        var b = ctx.Balance;
+
+        if (x < b.MoveMinX || y < b.MoveMinY ||
+            x + b.PlotSize > b.MoveMaxX || y + b.PlotSize > b.MoveMaxY)
+        {
+            reason = "La bandeja no cabe ahí.";
+            return false;
+        }
+
+        if (!WorldOccupancy.IsClear(ctx, WorldOccupancy.PlacementRect(b, x, y, b.PlotSize, b.PlotSize), out var blocker))
+        {
+            reason = $"Ahí hay {blocker}.";
+            return false;
+        }
+
+        if (s.Inventory["parcela"] < 1)
+        {
+            reason = "No tienes una bandeja de cultivo.";
+            return false;
+        }
+
+        reason = string.Empty;
+        return true;
+    }
+
+    public static bool TryPlaceField(IGameContext ctx, float x, float y, out string reason)
+    {
+        if (!CanPlaceField(ctx, x, y, out reason)) return false;
+
+        var s = ctx.State;
+
+        s.Inventory.Remove("parcela", 1);
+        var plot = new Plot(x, y) { SlotIndex = -1 };
+        s.Plots.Add(plot);
+
+        s.Building = false;
+        s.PlacingItem = null;
+        reason = string.Empty;
+        ctx.Say("Colocas una bandeja de cultivo en el terreno.", MessageKind.Good);
         return true;
     }
 
@@ -159,6 +223,7 @@ public static class BuildSystem
 
         s.Building = false;
         s.MovingDomeId = null;
+        s.PlacingItem = null;
         ctx.Say($"Mueves la cúpula {dome.Id}.", MessageKind.Good);
         return true;
     }

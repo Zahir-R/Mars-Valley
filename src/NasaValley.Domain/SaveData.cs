@@ -24,6 +24,7 @@ public sealed class SaveGameData
     public List<NodeData> Nodes { get; set; } = new();
     public List<PickupData> Pickups { get; set; } = new();
     public List<DomeData> Domes { get; set; } = new();
+    public List<FieldData> Fields { get; set; } = new();
     public double RestCooldown { get; set; }
 }
 
@@ -87,6 +88,15 @@ public sealed class PlotData
     public double Time { get; set; }
 }
 
+public sealed class FieldData
+{
+    public float X { get; set; }
+    public float Y { get; set; }
+    public string PlantId { get; set; } = string.Empty;
+    public string State { get; set; } = string.Empty;
+    public double Time { get; set; }
+}
+
 public sealed class DomeData
 {
     public int Id { get; set; }
@@ -105,7 +115,7 @@ public sealed class DomeData
 /// <summary>JSON (de)serialization for saves; no engine calls, fully testable.</summary>
 public static class SaveSerializer
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
 
     private static readonly JsonSerializerOptions Options = new()
     {
@@ -121,7 +131,16 @@ public static class SaveSerializer
         try
         {
             var data = JsonSerializer.Deserialize<SaveGameData>(json, Options);
-            return data?.Version == CurrentVersion ? data : null;
+            if (data == null) return null;
+            if (data.Version == CurrentVersion) return data;
+            if (data.Version == 1)
+            {
+                // Migrate v1 (no open-air fields) to v2.
+                data.Version = CurrentVersion;
+                data.Fields ??= new List<FieldData>();
+                return data;
+            }
+            return null;
         }
         catch (System.Exception)
         {

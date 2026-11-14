@@ -22,7 +22,6 @@ public sealed class GameSession : IGameContext
         PartDatabase? parts = null,
         RecipeDatabase? recipes = null,
         PlantDatabase? plants = null,
-        AreaDatabase? areas = null,
         MissionSet? missions = null,
         IRandom? rng = null,
         GameEvents? events = null)
@@ -33,7 +32,6 @@ public sealed class GameSession : IGameContext
         Parts = parts ?? PartDatabase.CreateDefault();
         Recipes = recipes ?? RecipeDatabase.CreateDefault();
         Plants = plants ?? PlantDatabase.CreateDefault();
-        Areas = areas ?? AreaDatabase.CreateDefault();
         Missions = missions ?? MissionSet.CreateDefault();
         Rng = rng ?? new SystemRandom();
         Events = events ?? new GameEvents();
@@ -47,7 +45,6 @@ public sealed class GameSession : IGameContext
     public PartDatabase Parts { get; }
     public RecipeDatabase Recipes { get; }
     public PlantDatabase Plants { get; }
-    public AreaDatabase Areas { get; }
     public MissionSet Missions { get; }
     public IRandom Rng { get; }
     public GameEvents Events { get; }
@@ -159,6 +156,16 @@ public sealed class GameSession : IGameContext
                         Events.RaisePanelRequested("cupula");
                     }
                     break;
+                case PlotTarget pt when intent.InteractPressed:
+                    if (pt.Plot.State == PlotState.Empty)
+                    {
+                        State.ModalOpen = true;
+                        Events.RaisePanelRequested("plant");
+                        State.ActivePlot = pt.Plot;
+                        return;
+                    }
+                    new InteractCommand(pt).Execute(this);
+                    break;
                 case not null when intent.InteractPressed:
                     new InteractCommand(target).Execute(this);
                     break;
@@ -190,6 +197,7 @@ public sealed class GameSession : IGameContext
     public void Eat(string itemId) => new EatItemCommand(itemId).Execute(this);
     public void Repair(string partId) => new RepairPartCommand(partId).Execute(this);
     public void RefillO2() => new RefillO2Command().Execute(this);
+    public void Plant(Plot plot, string plantId) => new PlantCommand(plot, plantId).Execute(this);
     public void MeltIce() => new MeltIceCommand().Execute(this);
 
     public void Craft(string recipeId)
@@ -282,11 +290,21 @@ public sealed class GameSession : IGameContext
         Say("Modo desarrollador activado: todos los objetos y cultivos acelerados.", MessageKind.Good);
     }
 
-    public void StartBuild()
+    public void StartBuild() => StartPlacement(BuildSystem.StoredDomeItem);
+
+    public void StartPlacement(string itemId)
     {
         if (State.Flow != FlowState.Playing || State.ModalOpen) return;
+        if (!Items.TryGet(itemId, out var def) || !def.HasTag("Colocable")) return;
+        if (State.Inventory[itemId] < 1)
+        {
+            Say($"No tienes {def.Name.ToLowerInvariant()} para colocar.", MessageKind.Warn);
+            return;
+        }
+
         State.MovingDomeId = null;
         State.PendingFixture = null;
+        State.PlacingItem = itemId;
         State.Building = true;
     }
 
@@ -294,9 +312,15 @@ public sealed class GameSession : IGameContext
     {
         State.Building = false;
         State.MovingDomeId = null;
+        State.PlacingItem = null;
     }
 
     public bool CanPlaceDome() => BuildSystem.CanPlaceAt(this, State.BuildX, State.BuildY, out _);
+
+    public bool CanPlaceCurrentPlacement() =>
+        State.PlacingItem == "parcela"
+            ? BuildSystem.CanPlaceField(this, State.BuildX, State.BuildY, out _)
+            : BuildSystem.CanPlaceAt(this, State.BuildX, State.BuildY, out _);
 
     // ---- Save / load -----------------------------------------------------------
 
@@ -388,6 +412,19 @@ public sealed class GameSession : IGameContext
                 });
             }
             data.Domes.Add(saved);
+        }
+
+        foreach (var plot in s.Plots)
+        {
+            if (plot.Dome != null) continue; // already saved with its dome.
+            data.Fields.Add(new FieldData
+            {
+                X = plot.X,
+                Y = plot.Y,
+                PlantId = plot.PlantId,
+                State = plot.State.ToString(),
+                Time = plot.Time,
+            });
         }
 
         return data;
@@ -497,6 +534,20 @@ public sealed class GameSession : IGameContext
             }
         }
 
+        foreach (var saved in data.Fields)
+        {
+            if (!Plants.TryGet(saved.PlantId, out _)) continue;
+            var state = Enum.TryParse<PlotState>(saved.State, out var parsed) ? parsed : PlotState.Empty;
+            var created = new Plot(saved.X, saved.Y)
+            {
+                SlotIndex = -1,
+                PlantId = saved.PlantId,
+                State = state,
+                Time = saved.Time,
+            };
+            s.Plots.Add(created);
+        }
+
         State = s;
         NormalizeFoodSource();
         Events.RaiseStateChanged();
@@ -507,6 +558,7 @@ public sealed class GameSession : IGameContext
         State.ModalOpen = false;
         State.Building = false;
         State.MovingDomeId = null;
+        State.PlacingItem = null;
         State.ActiveDomeId = null;
         State.PendingFixture = null;
         State.Flow = FlowState.Boot;
@@ -558,12 +610,12 @@ public sealed class GameSession : IGameContext
         s.Vitals.Food = Balance.StartFood;
         s.Vitals.Health = Balance.StartHealth;
 
-        foreach (var spawn in NodeDatabase.DefaultSpawns)
+        foreach (var spawn in WorldSetup.SpawnNodes(Rng))
         {
             s.Nodes.Add(new ResourceNode(spawn.Type, spawn.X, spawn.Y, Balance.NodeAmount));
         }
 
-        foreach (var spawn in NodeDatabase.DefaultPickups)
+        foreach (var spawn in WorldSetup.SpawnPickups(Rng))
         {
             s.Pickups.Add(new Pickup(spawn.ItemId, spawn.Amount, spawn.X, spawn.Y));
         }

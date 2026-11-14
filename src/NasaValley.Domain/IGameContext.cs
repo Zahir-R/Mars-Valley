@@ -13,7 +13,6 @@ public interface IGameContext
     PartDatabase Parts { get; }
     RecipeDatabase Recipes { get; }
     PlantDatabase Plants { get; }
-    AreaDatabase Areas { get; }
     MissionSet Missions { get; }
     IRandom Rng { get; }
     GameEvents Events { get; }

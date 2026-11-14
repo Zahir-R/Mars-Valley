@@ -7,12 +7,11 @@ namespace NasaValley.Domain;
 /// </summary>
 public sealed class BalanceConfig
 {
-    // World / grid
-    public int TileSize { get; init; } = 32;
-    public int GridWidth { get; init; } = 24;
-    public int GridHeight { get; init; } = 14;
-    public int ViewWidth => GridWidth * TileSize;   // 768
-    public int ViewHeight => GridHeight * TileSize; // 448
+    // World / view. The biome grid is baked from real Gale Crater data (see GeneratedBiomes).
+    public int ViewWidth { get; init; } = 768;
+    public int ViewHeight { get; init; } = 448;
+    public int WorldWidth => GeneratedBiomes.WorldWidth;
+    public int WorldHeight => GeneratedBiomes.WorldHeight;
     public int PlotSize { get; init; } = 34;
     public int PlotColumns { get; init; } = 2;
     public int PlotRows { get; init; } = 2;
@@ -34,9 +33,9 @@ public sealed class BalanceConfig
     public double DomeBaseEnergy { get; init; } = 60;
     public double BatteryStorage { get; init; } = 80;
     public double DomeTargetTempC { get; init; } = 22;
-    public double DomePassiveSolar { get; init; } = 0.3;
+    public double DomePassiveSolar { get; init; } = 1.4;
     public double SolarPanelOutput { get; init; } = 2.0;
-    public double DomeEnergyPerDegreePerSec { get; init; } = 0.02;
+    public double DomeEnergyPerDegreePerSec { get; init; } = 0.008;
     public double RestEnergyGain { get; init; } = 60;
     public double RestCooldown { get; init; } = 15;
 
@@ -89,8 +88,8 @@ public sealed class BalanceConfig
     public double StormTempDrop { get; init; } = 6;
 
     // Ship / greenhouse rectangles (logical world units)
-    public float ShipX { get; init; } = 36;
-    public float ShipY { get; init; } = 30;
+    public float ShipX { get; init; } = 1330;
+    public float ShipY { get; init; } = 780;
     public float ShipWidth { get; init; } = 170;
     public float ShipHeight { get; init; } = 118;
 
@@ -99,9 +98,9 @@ public sealed class BalanceConfig
     public float TiredSpeed { get; init; } = 62f;
     public float TiredEnergy { get; init; } = 15f;
     public float MoveMinX { get; init; } = 14f;
-    public float MoveMaxX => ViewWidth - 14f;
+    public float MoveMaxX => WorldWidth - 14f;
     public float MoveMinY { get; init; } = 24f;
-    public float MoveMaxY => ViewHeight - 18f;
+    public float MoveMaxY => WorldHeight - 18f;
     public float BodyHalfWidth { get; init; } = 7f;
     public float BodyTopOffset { get; init; } = 2f;
     public float BodyHeight { get; init; } = 12f;
@@ -122,8 +121,8 @@ public sealed class BalanceConfig
     public double NodeBlockedRetry { get; init; } = 5;
 
     // Base stations (world positions). The ship itself is the ship upgrades station.
-    public float WorkbenchX { get; init; } = 240f;
-    public float WorkbenchY { get; init; } = 250f;
+    public float WorkbenchX { get; init; } = 1580f;
+    public float WorkbenchY { get; init; } = 975f;
 
     // Simulation clock
     public double SolLength { get; init; } = 240;
@@ -182,8 +181,8 @@ public sealed class BalanceConfig
     public int StartEnergy { get; init; } = 80;
     public int StartFood { get; init; } = 70;
     public int StartHealth { get; init; } = 100;
-    public float StartX { get; init; } = 250;
-    public float StartY { get; init; } = 215;
+    public float StartX { get; init; } = 1550;
+    public float StartY { get; init; } = 975;
 
     public static BalanceConfig Default { get; } = new();
 }

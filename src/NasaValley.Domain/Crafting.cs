@@ -37,5 +37,7 @@ public sealed class RecipeDatabase
             "pico", 1, new Dictionary<string, int> { ["roca"] = 5, ["fijaciones"] = 3, ["mango"] = 1 }),
         new RecipeDefinition("pico_reforzado", "Pico reforzado", "Refuerza un martillo con basalto.",
             "pico_reforzado", 1, new Dictionary<string, int> { ["martillo"] = 1, ["basalto"] = 2, ["fijaciones"] = 1 }),
+        new RecipeDefinition("parcela", "Bandeja de cultivo", "Bandeja abierta para cultivar al descubierto.",
+            "parcela", 1, new Dictionary<string, int> { ["roca"] = 2, ["regolito"] = 1, ["fijaciones"] = 1 }),
     });
 }

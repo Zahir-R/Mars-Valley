@@ -277,6 +277,10 @@ public sealed class GameState
 
     /// <summary>True while placing a dome; the ghost follows the player and E confirms.</summary>
     public bool Building { get; set; }
+
+    /// <summary>Item currently being placed (e.g. "cupula" or "parcela"), or null.</summary>
+    public string? PlacingItem { get; set; }
+
     public float BuildX { get; set; }
     public float BuildY { get; set; }
 
@@ -298,6 +302,8 @@ public sealed class GameState
     public string SelectedCrop { get; set; } = "lechuga";
 
     /// <summary>Item id currently chosen as the food source (eaten first with F).</summary>
+    public Plot? ActivePlot { get; set; }
+
     public string? FoodSource { get; set; }
     public Storm Storm { get; } = new();
     public RunStats Stats { get; } = new();

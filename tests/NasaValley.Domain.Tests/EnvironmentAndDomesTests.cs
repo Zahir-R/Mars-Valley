@@ -35,12 +35,12 @@ public class EnvironmentAndDomesTests
     }
 
     [Fact]
-    public void AreasPartitionTheMapByTemperature()
+    public void BiomesPartitionTheMap()
     {
         var session = NewSession();
-        Assert.Equal("crater", session.Areas.At(100, 100).Id);
-        Assert.Equal("llanura", session.Areas.At(400, 100).Id);
-        Assert.Equal("afloramiento", session.Areas.At(700, 100).Id);
+        Assert.Equal("regolith_plains", GeneratedBiomes.At(3, 8).Id);
+        Assert.Equal("gale_floor", GeneratedBiomes.At(3, 14).Id);
+        Assert.Equal("high_dusty_plains", GeneratedBiomes.At(9, 25).Id);
     }
 
     [Fact]

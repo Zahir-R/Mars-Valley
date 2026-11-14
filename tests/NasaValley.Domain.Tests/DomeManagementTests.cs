@@ -72,15 +72,19 @@ public class DomeManagementTests
     }
 
     [Fact]
-    public void PlantingIsRejectedOutsideASafeZone()
+    public void OpenTraysCanBePlantedOutsideADome()
     {
         var session = NewSession();
         session.State.Inventory["semillas"] = 5;
-        var plot = new Plot(10, 10);
+        session.State.Inventory["parcela"] = 1;
+
+        Assert.True(BuildSystem.TryPlaceField(session, 200, 200, out var reason), reason);
+        var plot = Assert.Single(session.State.Plots);
+        Assert.Null(plot.Dome);
 
         new PlantCommand(plot, "papa").Execute(session);
 
-        Assert.Equal(PlotState.Empty, plot.State);
+        Assert.Equal(PlotState.Dry, plot.State);
     }
 
     [Fact]

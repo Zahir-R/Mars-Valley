@@ -6,37 +6,34 @@ using NasaValley.Domain;
 namespace NasaValley.Rendering;
 
 /// <summary>
-/// The 768x448 game viewport contents. Composes the static ground layer with the
-/// dynamic world (domes, ship, entities, effects, weather) each frame.
+/// The 768x448 game viewport. Composes the static ground layer with the dynamic world.
+/// A camera follows the player through the expanded Gale Crater biome map.
 /// </summary>
 public partial class WorldView : Node2D
 {
     public GameSession Session { get; set; } = null!;
 
-    private const float ViewWidth = 768f;
-    private const float ViewHeight = 448f;
-
-    private SubViewport _sub = null!;
-    private Vector2I _lastSize = Vector2I.Zero;
+    private Camera2D _camera = null!;
 
     public override void _Ready()
     {
         AddChild(new GroundLayer { Name = "GroundLayer", ShowBehindParent = true });
-        _sub = GetParent<SubViewport>();
+        _camera = new Camera2D
+        {
+            Name = "WorldCamera",
+            LimitLeft = 0,
+            LimitTop = 0,
+            LimitRight = GeneratedBiomes.WorldWidth,
+            LimitBottom = GeneratedBiomes.WorldHeight,
+        };
+        AddChild(_camera);
+        _camera.MakeCurrent();
         SetProcess(true);
     }
 
     public override void _Process(double delta)
     {
-        var size = _sub.Size;
-        if (size != _lastSize && size.X > 0 && size.Y > 0)
-        {
-            _lastSize = size;
-            var scale = Mathf.Min(size.X / ViewWidth, size.Y / ViewHeight);
-            Scale = new Vector2(scale, scale);
-            Position = new Vector2((size.X - ViewWidth * scale) * 0.5f, (size.Y - ViewHeight * scale) * 0.5f);
-        }
-
+        SyncCamera(Session.State);
         QueueRedraw();
     }
 
@@ -48,7 +45,6 @@ public partial class WorldView : Node2D
 
         DrawDomes(s, b, clock);
         WorldDraw.DrawShip(this, s, b, clock);
-
         DrawEntities(s, clock);
 
         if (s.Running && !s.Paused && !s.Over)
@@ -59,6 +55,15 @@ public partial class WorldView : Node2D
         DrawParticles(s);
         DrawFloats(s);
         DrawWeather(s, b, clock);
+        SyncCamera(s);
+    }
+
+    private void SyncCamera(GameState s)
+    {
+        if (_camera == null) return;
+        // Follow the player with a gentle ease; Camera2D clamps to the world bounds.
+        var target = new Vector2(s.Px, s.Py);
+        _camera.Position = target;
     }
 
     private void DrawDomes(GameState s, BalanceConfig b, double clock)
@@ -96,7 +101,14 @@ public partial class WorldView : Node2D
 
         if (s.Building)
         {
-            WorldDraw.DrawBuildGhost(this, s.BuildX, s.BuildY, b, Session.CanPlaceDome());
+            if (s.PlacingItem == "parcela")
+            {
+                WorldDraw.DrawFieldGhost(this, s.BuildX, s.BuildY, b, Session.CanPlaceCurrentPlacement());
+            }
+            else
+            {
+                WorldDraw.DrawBuildGhost(this, s.BuildX, s.BuildY, b, Session.CanPlaceCurrentPlacement());
+            }
         }
     }
 
@@ -122,7 +134,7 @@ public partial class WorldView : Node2D
         }
 
         drawables.Add((s.Py + 12, () => WorldDraw.DrawAstronaut(this, s)));
-        drawables.Sort((a, c) => a.Y.CompareTo(c.Y));
+        drawables.Sort((a, b) => a.Y.CompareTo(b.Y));
 
         WorldDraw.DrawPlayerMarker(this, s, clock);
         foreach (var (_, draw) in drawables) draw();
@@ -185,20 +197,20 @@ public partial class WorldView : Node2D
         var darkness = GameClock.Darkness(hour, b.NightDarkness);
         if (darkness > 0)
         {
-            WorldDraw.Fill(this, 0, 0, b.ViewWidth, b.ViewHeight,
+            WorldDraw.Fill(this, 0, 0, GeneratedBiomes.WorldWidth, GeneratedBiomes.WorldHeight,
                 new Color(12 / 255f, 14 / 255f, 46 / 255f, (float)darkness));
         }
 
         if (s.Storm.Left <= 0) return;
 
-        WorldDraw.Fill(this, 0, 0, b.ViewWidth, b.ViewHeight,
+        WorldDraw.Fill(this, 0, 0, GeneratedBiomes.WorldWidth, GeneratedBiomes.WorldHeight,
             new Color(190 / 255f, 110 / 255f, 60 / 255f, 0.30f));
 
         var streak = new Color(240 / 255f, 190 / 255f, 140 / 255f, 0.35f);
         for (var i = 0; i < 60; i++)
         {
-            var sx = ((i * 97 + clock * 300) % (b.ViewWidth + 80)) - 40;
-            var sy = (i * 53) % b.ViewHeight + Mathf.Sin(i + (float)clock * 2) * 8;
+            var sx = ((i * 97 + clock * 300) % (GeneratedBiomes.WorldWidth + 80)) - 40;
+            var sy = (i * 53) % GeneratedBiomes.WorldHeight + Mathf.Sin(i + (float)clock * 2) * 8;
             var len = 14 + (i % 5) * 6;
             DrawLine(new Vector2((float)sx, sy), new Vector2((float)sx - len, sy + len * 0.25f), streak, 2);
         }
