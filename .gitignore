@@ -24,3 +24,6 @@ obj/
 # Mars data pipeline (downloaded raw products)
 tools/mars_data/raw/
 tools/mars_data/.venv/
+# Ignore build outputs
+builds/
+*.exe
