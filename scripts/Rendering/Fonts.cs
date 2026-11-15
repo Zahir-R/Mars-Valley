@@ -24,6 +24,11 @@ public static class Fonts
 
     private static Font Load(string path)
     {
+        // Prefer the imported resource (works in exported builds, where the raw
+        // .ttf is not shipped and only the .fontdata remap is available).
+        var imported = GD.Load<Font>(path);
+        if (imported != null) return imported;
+
         var font = new FontFile();
         var error = font.LoadDynamicFont(path);
         return error == Error.Ok ? font : ThemeDB.FallbackFont;

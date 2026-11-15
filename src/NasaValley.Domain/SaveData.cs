@@ -29,6 +29,32 @@ public sealed class SaveGameData
 
     /// <summary>O2 refills the ship has left; old saves default to the full amount.</summary>
     public int ShipO2Charges { get; set; } = 5;
+
+    /// <summary>Stranded-survivor quest state; null on saves made before the quest existed.</summary>
+    public NpcSaveData? Npc { get; set; }
+}
+
+public sealed class NpcSaveData
+{
+    public string Phase { get; set; } = "None";
+    public bool InterferenceActive { get; set; }
+    public double InterferenceTimer { get; set; }
+    public List<string>? Letters { get; set; } = new();
+    public List<string>? Unread { get; set; } = new();
+    public string? ActiveLetterId { get; set; }
+    public float CacheX { get; set; }
+    public float CacheY { get; set; }
+    public string CacheItemId { get; set; } = "agua";
+    public int CacheAmount { get; set; } = 3;
+    public bool CacheFilled { get; set; }
+    public float SurvivorX { get; set; }
+    public float SurvivorY { get; set; }
+    public bool SiteUnlocked { get; set; }
+    public bool SurvivorFound { get; set; }
+    public bool SiteSkipped { get; set; }
+    public bool RewardGranted { get; set; }
+    public bool PendingFinalChoice { get; set; }
+    public string Outcome { get; set; } = "None";
 }
 
 public sealed class VitalsData
@@ -118,7 +144,7 @@ public sealed class DomeData
 /// <summary>JSON (de)serialization for saves; no engine calls, fully testable.</summary>
 public static class SaveSerializer
 {
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 3;
 
     private static readonly JsonSerializerOptions Options = new()
     {
@@ -136,9 +162,9 @@ public static class SaveSerializer
             var data = JsonSerializer.Deserialize<SaveGameData>(json, Options);
             if (data == null) return null;
             if (data.Version == CurrentVersion) return data;
-            if (data.Version == 1)
+            if (data.Version is 1 or 2)
             {
-                // Migrate v1 (no open-air fields) to v2.
+                // Migrate older saves; the survivor quest block is created by ApplySave.
                 data.Version = CurrentVersion;
                 data.Fields ??= new List<FieldData>();
                 return data;

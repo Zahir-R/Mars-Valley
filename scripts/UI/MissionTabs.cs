@@ -59,10 +59,12 @@ public sealed class ShipPanel
     private readonly Button _melt;
     private readonly Label _refillSub;
     private readonly List<PartRow> _parts = new();
+    private readonly MailPanel _mail;
 
-    public ShipPanel(GameSession session)
+    public ShipPanel(GameSession session, Action? onClose = null)
     {
         _session = session;
+        _mail = new MailPanel(session, onClose ?? (() => { }));
 
         _percent = UiTheme.Text("0%", 13, Palette.Suit, Fonts.MonoWeight(500));
         var percentRow = UiTheme.HBox(0);
@@ -110,6 +112,7 @@ public sealed class ShipPanel
         body.AddChild(overall);
         body.AddChild(parts);
         body.AddChild(support);
+        body.AddChild(_mail.Root);
 
         var panel = new PanelContainer();
         panel.AddThemeStyleboxOverride("panel", UiTheme.Card(14));
@@ -148,6 +151,7 @@ public sealed class ShipPanel
         _refillSub.AddThemeColorOverride("font_color", s.ShipO2Charges > 0 ? Palette.Muted : Palette.Health);
         _refill.Disabled = !near || s.Inventory["hielo"] < 1 || s.Vitals.O2 >= 100 || s.ShipO2Charges <= 0;
         _melt.Disabled = !near || s.Inventory["hielo"] < 1;
+        _mail.Refresh();
     }
 }
 

@@ -16,6 +16,9 @@ public sealed class GameEvents
     /// <summary>UI request to focus a mission tab (e.g. opening the ship panel).</summary>
     public event Action<string>? PanelRequested;
 
+    /// <summary>A new NPC letter was delivered to the Nave inbox (id of the letter).</summary>
+    public event Action<string>? LetterDelivered;
+
     public void RaiseMessage(string text, MessageKind kind) => Message?.Invoke(text, kind);
 
     public void RaiseStateChanged() => StateChanged?.Invoke();
@@ -23,4 +26,6 @@ public sealed class GameEvents
     public void RaiseGameEnded(bool win) => GameEnded?.Invoke(win);
 
     public void RaisePanelRequested(string tabId) => PanelRequested?.Invoke(tabId);
+
+    public void RaiseLetterDelivered(string letterId) => LetterDelivered?.Invoke(letterId);
 }

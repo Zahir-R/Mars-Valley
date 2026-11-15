@@ -21,6 +21,12 @@ public sealed record DomeFixtureTarget(Dome Dome, Fixture Fixture) : Interaction
 
 public sealed record ShipTarget : InteractionTarget;
 
+/// <summary>The beacon where the player leaves supplies for the survivor.</summary>
+public sealed record SupplyCacheTarget : InteractionTarget;
+
+/// <summary>The stranded survivor's site, reachable after the coordinates letter.</summary>
+public sealed record SurvivorSiteTarget : InteractionTarget;
+
 /// <summary>
 /// Strategy for "what is the player looking at" and "what should the prompt say".
 /// Extracted from the original findTarget/promptFor pair.
@@ -127,6 +133,25 @@ public static class InteractionSystem
             best = new ShipTarget();
         }
 
+        if (s.NpcPhase == NpcPhase.AwaitingSupplies && !s.CacheFilled)
+        {
+            var d = Distance(s.CacheX, s.CacheY, s.Px, s.Py);
+            if (d < b.CacheInteractRadius && d < bestDistance)
+            {
+                bestDistance = d;
+                best = new SupplyCacheTarget();
+            }
+        }
+
+        if (s.SiteUnlocked && !s.SurvivorFound && !s.SiteSkipped)
+        {
+            var d = Distance(s.SurvivorX, s.SurvivorY, s.Px, s.Py);
+            if (d < b.SurvivorInteractRadius && d < bestDistance)
+            {
+                best = new SurvivorSiteTarget();
+            }
+        }
+
         return best;
     }
 
@@ -158,7 +183,17 @@ public static class InteractionSystem
                 };
 
             case ShipTarget:
-                return "Abrir panel de la nave";
+                var unread = NpcQuestSystem.UnreadCount(s);
+                return unread > 0 ? $"Abrir panel de la nave ({unread} nuevo)" : "Abrir panel de la nave";
+
+            case SupplyCacheTarget:
+                var have = s.Inventory[s.CacheItemId];
+                var itemName = ctx.Items[s.CacheItemId].Name.ToLowerInvariant();
+                if (have >= s.CacheAmount) return $"Entregar {s.CacheAmount} {itemName}";
+                return $"Faltan {s.CacheAmount - have} {itemName}";
+
+            case SurvivorSiteTarget:
+                return "Auxiliar a la superviviente";
 
             case DomeTerminalTarget dt:
                 return $"Terminal de la cúpula {dt.Dome.Id} (nivel {dt.Dome.Level})";

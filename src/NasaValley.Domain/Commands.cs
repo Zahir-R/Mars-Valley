@@ -241,6 +241,7 @@ public sealed class RepairPartCommand(string partId) : IGameCommand
         {
             s.WinTimer = b.WinDelay;
             ctx.Say("¡Motor encendido! Preparando el despegue…", MessageKind.Good);
+            NpcQuestSystem.OnShipRepaired(ctx);
         }
     }
 }

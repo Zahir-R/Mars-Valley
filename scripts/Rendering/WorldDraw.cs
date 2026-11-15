@@ -148,6 +148,49 @@ public static class WorldDraw
 
     }
 
+    /// <summary>The supply beacon the player fills for the survivor.</summary>
+    public static void DrawSupplyCache(CanvasItem c, GameState s, double clock)
+    {
+        var x = Mathf.Round(s.CacheX);
+        var y = Mathf.Round(s.CacheY);
+        var pulse = 0.5f + 0.5f * Mathf.Sin((float)clock * 3f);
+
+        var glow = new Color(1f, 0.83f, 0.35f, 0.10f + 0.14f * pulse);
+        c.DrawCircle(new Vector2(x, y - 12), 22, glow);
+
+        Fill(c, x - 15, y + 6, 30, 5, new Color(0, 0, 0, 0.28f));
+        Fill(c, x - 14, y - 8, 28, 20, Color.FromHtml("#3b3631"));
+        Stroke(c, x - 14, y - 8, 28, 20, Color.FromHtml("#8c8678"));
+        Fill(c, x - 14, y + 1, 28, 3, Color.FromHtml("#5d564b"));
+        Fill(c, x - 4, y - 5, 8, 3, Color.FromHtml("#c9a45a"));
+
+        Fill(c, x - 1, y - 28, 2, 22, Color.FromHtml("#8c8678"));
+        c.DrawCircle(new Vector2(x, y - 29), 3.5f, pulse > 0.5f ? Palette.Energy : Color.FromHtml("#6b645a"));
+
+        DrawText(c, "SUMINISTROS", x, y + 24, new Color(1, 1, 1, 0.6f), 8);
+    }
+
+    /// <summary>The stranded survivor's wreck site with a distress beacon.</summary>
+    public static void DrawSurvivorSite(CanvasItem c, GameState s, double clock)
+    {
+        var x = Mathf.Round(s.SurvivorX);
+        var y = Mathf.Round(s.SurvivorY);
+        var pulse = 0.5f + 0.5f * Mathf.Sin((float)clock * 4f);
+
+        var glow = new Color(1f, 0.45f, 0.38f, 0.10f + 0.16f * pulse);
+        c.DrawCircle(new Vector2(x, y - 8), 26, glow);
+
+        Fill(c, x - 20, y + 8, 40, 5, new Color(0, 0, 0, 0.28f));
+        Fill(c, x - 16, y - 4, 32, 14, Color.FromHtml("#4a4036"));
+        Stroke(c, x - 16, y - 4, 32, 14, Color.FromHtml("#8c8678"));
+        Fill(c, x - 10, y - 10, 14, 8, Color.FromHtml("#cfc8bb"));
+        Stroke(c, x - 10, y - 10, 14, 8, Color.FromHtml("#5d564b"));
+        Fill(c, x + 8, y - 16, 3, 12, Color.FromHtml("#8c8678"));
+        c.DrawCircle(new Vector2(x + 9, y - 18), 3f, pulse > 0.45f ? Palette.Health : Color.FromHtml("#6b645a"));
+
+        DrawText(c, "S.O.S.", x, y + 24, new Color(1, 0.6f, 0.5f, 0.75f), 8);
+    }
+
     /// <summary>A loose item resting on the ground, gently bobbing with a soft glow.</summary>
     public static void DrawPickup(CanvasItem c, Pickup p, ItemDefinition def, double clock)
     {

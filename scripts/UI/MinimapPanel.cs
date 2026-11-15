@@ -81,19 +81,46 @@ public partial class MinimapPanel : Control
         var shipY = origin.Y + (b.ShipY + b.ShipHeight / 2f) / b.WorldHeight * GeneratedBiomes.Height * Cell;
         DrawRect(new Rect2(shipX - 3, shipY - 2, 6, 4), new Color(1f, 0.83f, 0.35f, 0.95f), true);
 
+        var clock = Time.GetTicksMsec() / 1000.0;
+        var pulse = 0.6f + 0.4f * Mathf.Sin((float)clock * 3f);
+
+        if (s.NpcPhase == NpcPhase.AwaitingSupplies && !s.CacheFilled)
+        {
+            var mx = origin.X + s.CacheX / b.WorldWidth * GeneratedBiomes.Width * Cell;
+            var my = origin.Y + s.CacheY / b.WorldHeight * GeneratedBiomes.Height * Cell;
+            var c = new Color(1f, 0.83f, 0.35f, 0.6f + 0.35f * pulse);
+            DrawRect(new Rect2(mx - 2, my - 2, 4, 4), c, true);
+            DrawRect(new Rect2(mx - 3, my - 3, 6, 6), c, false, 1);
+        }
+
+        if (s.SiteUnlocked && !s.SurvivorFound && !s.SiteSkipped)
+        {
+            var mx = origin.X + s.SurvivorX / b.WorldWidth * GeneratedBiomes.Width * Cell;
+            var my = origin.Y + s.SurvivorY / b.WorldHeight * GeneratedBiomes.Height * Cell;
+            var c = new Color(1f, 0.5f, 0.4f, 0.6f + 0.35f * pulse);
+            DrawLine(new Vector2(mx - 2, my - 2), new Vector2(mx + 2, my + 2), c, 1);
+            DrawLine(new Vector2(mx + 2, my - 2), new Vector2(mx - 2, my + 2), c, 1);
+        }
+
         var scale = new Vector2((float)GeneratedBiomes.Width * Cell / b.WorldWidth,
             (float)GeneratedBiomes.Height * Cell / b.WorldHeight);
         var camRect = new Rect2(origin.X + (s.Px - 384) * scale.X, origin.Y + (s.Py - 224) * scale.Y,
             768 * scale.X, 448 * scale.Y);
         DrawRect(camRect, new Color(1, 1, 1, 0.4f), false, 1);
 
-        var clock = Time.GetTicksMsec() / 1000.0;
-        var pulse = 0.6f + 0.4f * Mathf.Sin((float)clock * 3f);
         var px = origin.X + s.Px / b.WorldWidth * GeneratedBiomes.Width * Cell;
         var py = origin.Y + s.Py / b.WorldHeight * GeneratedBiomes.Height * Cell;
         DrawCircle(new Vector2(px, py), 2.4f * pulse + 1.2f, new Color(1, 1, 1, 0.9f));
 
         DrawString(Fonts.MonoWeight(600), new Vector2(4, Size.Y - 6), "GALILEO / Crater Gale",
             HorizontalAlignment.Left, -1, 9, new Color(1, 1, 1, 0.65f));
+        var legend = string.Empty;
+        if (s.NpcPhase == NpcPhase.AwaitingSupplies && !s.CacheFilled) legend = "● suministros";
+        else if (s.SiteUnlocked && !s.SurvivorFound && !s.SiteSkipped) legend = "✕ señal";
+        if (legend.Length > 0)
+        {
+            DrawString(Fonts.MonoWeight(600), new Vector2(Size.X - 4, Size.Y - 6), legend,
+                HorizontalAlignment.Right, -1, 9, new Color(1, 0.85f, 0.5f, 0.75f));
+        }
     }
 }

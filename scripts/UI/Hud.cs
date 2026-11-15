@@ -44,7 +44,7 @@ public partial class Hud : Control
         _viewport.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
 
         _inventory = new InventoryPanel(session, PlaceItem);
-        _ship = new ShipPanel(session);
+        _ship = new ShipPanel(session, CloseModal);
         _workshop = new WorkshopPanel(session);
         _goals = new GoalsPanel(session);
         _dome = new DomePanel(session, CloseModal);
@@ -237,6 +237,8 @@ public partial class Hud : Control
     public void OpenPanel(string id)
     {
         if (!_session.State.Running) return;
+
+        if (id == "nave" && _session.State.InterferenceActive) _session.DecodeNpcInterference();
 
         var (title, content) = id switch
         {

@@ -266,6 +266,29 @@ public sealed class GameState
     /// <summary>Oxygen refills the ship has left (each one refills to 100%).</summary>
     public int ShipO2Charges { get; set; } = 5;
 
+    // --- Stranded survivor quest ------------------------------------------------
+    public NpcPhase NpcPhase { get; set; } = NpcPhase.None;
+    public bool InterferenceActive { get; set; }
+    public double NpcInterferenceTimer { get; set; }
+    public List<string> NpcLetters { get; } = new();
+    public List<string> NpcUnread { get; } = new();
+    public string? ActiveNpcLetterId { get; set; }
+
+    public float CacheX { get; set; }
+    public float CacheY { get; set; }
+    public string CacheItemId { get; set; } = "agua";
+    public int CacheAmount { get; set; } = 3;
+    public bool CacheFilled { get; set; }
+
+    public float SurvivorX { get; set; }
+    public float SurvivorY { get; set; }
+    public bool SiteUnlocked { get; set; }
+    public bool SurvivorFound { get; set; }
+    public bool SiteSkipped { get; set; }
+    public bool RewardGranted { get; set; }
+    public bool PendingFinalChoice { get; set; }
+    public NpcOutcome NpcOutcome { get; set; } = NpcOutcome.None;
+
     public Inventory Inventory { get; } = new();
     public Vitals Vitals { get; } = new();
     public Dictionary<string, bool> Repairs { get; } = new();

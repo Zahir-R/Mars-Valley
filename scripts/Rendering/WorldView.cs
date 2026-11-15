@@ -138,6 +138,16 @@ public partial class WorldView : Node2D
             drawables.Add((station.Y + 8, () => WorldDraw.DrawStation(this, station, clock)));
         }
 
+        if (s.NpcPhase == NpcPhase.AwaitingSupplies && !s.CacheFilled)
+        {
+            drawables.Add((s.CacheY + 8, () => WorldDraw.DrawSupplyCache(this, s, clock)));
+        }
+
+        if (s.SiteUnlocked && !s.SurvivorFound && !s.SiteSkipped)
+        {
+            drawables.Add((s.SurvivorY + 8, () => WorldDraw.DrawSurvivorSite(this, s, clock)));
+        }
+
         drawables.Add((s.Py + 12, () => WorldDraw.DrawAstronaut(this, s)));
         drawables.Sort((a, b) => a.Y.CompareTo(b.Y));
 
@@ -147,6 +157,7 @@ public partial class WorldView : Node2D
 
     private void DrawTargetRing(BalanceConfig b)
     {
+        var s = Session.State;
         switch (Session.CurrentTarget)
         {
             case NodeTarget nt:
@@ -168,6 +179,12 @@ public partial class WorldView : Node2D
                 break;
             case ShipTarget:
                 WorldDraw.DrawRing(this, b.ShipX - 3, b.ShipY - 3, b.ShipWidth + 6, b.ShipHeight + 6);
+                break;
+            case SupplyCacheTarget:
+                WorldDraw.DrawRing(this, s.CacheX - 22, s.CacheY - 34, 44, 46);
+                break;
+            case SurvivorSiteTarget:
+                WorldDraw.DrawRing(this, s.SurvivorX - 24, s.SurvivorY - 24, 48, 44);
                 break;
         }
     }

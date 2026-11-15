@@ -144,6 +144,10 @@ public partial class GameFrame : Control
         {
             banner = "Alerta: tormenta de polvo en " + Math.Ceiling(s.Storm.Next) + " s";
         }
+        else if (s.InterferenceActive)
+        {
+            banner = "Señal interferida · revisa la nave";
+        }
         _banner.Visible = banner.Length > 0;
         if (banner.Length > 0)
         {
@@ -180,10 +184,25 @@ public partial class GameFrame : Control
         _endEyebrow.Text = s.Win ? "Misión cumplida" : "Misión fallida";
         _endTitle.Text = s.Win ? "¡Despegue!" : "Traje sin soporte";
         _endText.Text = s.Win
-            ? $"Reparaste la nave en el Sol {GameClock.DayNumber(s.Time, Session.Balance.SolLength)} y vuelves a casa. El motor de ascenso respondió a la primera."
+            ? WinText(s)
             : s.Vitals.O2 <= 0
                 ? "Te quedaste sin oxígeno. Recarga el traje con hielo antes de que baje del 25 %."
                 : "La falta de alimento terminó con tus fuerzas. Cultiva y come papas con regularidad.";
+    }
+
+    private string WinText(GameState s)
+    {
+        var sol = GameClock.DayNumber(s.Time, Session.Balance.SolLength);
+        return s.NpcOutcome switch
+        {
+            NpcOutcome.Rescued =>
+                $"Reparaste la nave en el Sol {sol} y llevaste a la superviviente a casa. No vuelves solo.",
+            NpcOutcome.LeftBehind =>
+                $"Reparaste la nave en el Sol {sol} y despegaste. La señal de la superviviente quedó en silencio, atrás.",
+            NpcOutcome.LostContact =>
+                $"Reparaste la nave en el Sol {sol}. En algún lugar del cráter, una baliza se apaga para siempre.",
+            _ => $"Reparaste la nave en el Sol {sol} y vuelves a casa. El motor de ascenso respondió a la primera.",
+        };
     }
 
 }

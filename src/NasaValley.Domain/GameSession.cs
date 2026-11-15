@@ -138,6 +138,12 @@ public sealed class GameSession : IGameContext
                 case ShipTarget when intent.InteractPressed:
                     Events.RaisePanelRequested("nave");
                     break;
+                case SupplyCacheTarget when intent.InteractPressed:
+                    NpcQuestSystem.Deposit(this);
+                    break;
+                case SurvivorSiteTarget when intent.InteractPressed:
+                    NpcQuestSystem.MeetSurvivor(this);
+                    break;
                 case DomeTerminalTarget dtt when intent.InteractPressed:
                     State.ActiveDomeId = dtt.Dome.Id;
                     Events.RaisePanelRequested("cupula");
@@ -186,6 +192,7 @@ public sealed class GameSession : IGameContext
         DomeSystem.Update(this, dt);
         FarmingSystem.Update(this, dt);
         WeatherSystem.Update(this, dt);
+        NpcQuestSystem.Update(this, dt);
         SurvivalSystem.Update(this, dt);
         NormalizeFoodSource();
         EffectsSystem.Update(this, dt);
@@ -209,6 +216,23 @@ public sealed class GameSession : IGameContext
     public void RefillO2() => new RefillO2Command().Execute(this);
     public void Plant(Plot plot, string plantId) => new PlantCommand(plot, plantId).Execute(this);
     public void MeltIce() => new MeltIceCommand().Execute(this);
+
+    // ---- Survivor quest -------------------------------------------------------
+
+    /// <summary>Called when the Nave is opened; decodes an active interference into the first letter.</summary>
+    public void DecodeNpcInterference() => NpcQuestSystem.Decode(this);
+
+    public bool DepositSupplies() => NpcQuestSystem.Deposit(this);
+
+    public bool MeetSurvivor() => NpcQuestSystem.MeetSurvivor(this);
+
+    public void ChooseSite(bool go) => NpcQuestSystem.ChooseSite(this, go);
+
+    public void ChooseFinal(bool takeSurvivor) => NpcQuestSystem.ChooseFinal(this, takeSurvivor);
+
+    public void ReadNpcLetter(string id) => NpcQuestSystem.Read(State, id);
+
+    public int UnreadNpcCount => NpcQuestSystem.UnreadCount(State);
 
     public void Craft(string recipeId)
     {
@@ -383,6 +407,28 @@ public sealed class GameSession : IGameContext
             },
             Storm = new StormData { Next = s.Storm.Next, Left = s.Storm.Left },
             Stats = new StatsData { Ice = s.Stats.Ice, Planted = s.Stats.Planted, Harvested = s.Stats.Harvested },
+            Npc = new NpcSaveData
+            {
+                Phase = s.NpcPhase.ToString(),
+                InterferenceActive = s.InterferenceActive,
+                InterferenceTimer = s.NpcInterferenceTimer,
+                Letters = new List<string>(s.NpcLetters),
+                Unread = new List<string>(s.NpcUnread),
+                ActiveLetterId = s.ActiveNpcLetterId,
+                CacheX = s.CacheX,
+                CacheY = s.CacheY,
+                CacheItemId = s.CacheItemId,
+                CacheAmount = s.CacheAmount,
+                CacheFilled = s.CacheFilled,
+                SurvivorX = s.SurvivorX,
+                SurvivorY = s.SurvivorY,
+                SiteUnlocked = s.SiteUnlocked,
+                SurvivorFound = s.SurvivorFound,
+                SiteSkipped = s.SiteSkipped,
+                RewardGranted = s.RewardGranted,
+                PendingFinalChoice = s.PendingFinalChoice,
+                Outcome = s.NpcOutcome.ToString(),
+            },
         };
 
         foreach (var (id, count) in s.Inventory.Entries)
@@ -508,6 +554,41 @@ public sealed class GameSession : IGameContext
 
         s.RestCooldown = Math.Max(0, data.RestCooldown);
         s.ShipO2Charges = Math.Clamp(data.ShipO2Charges, 0, Balance.ShipO2ChargesMax);
+
+        if (data.Npc != null)
+        {
+            var npc = data.Npc;
+            s.NpcPhase = Enum.TryParse<NpcPhase>(npc.Phase, out var phase) ? phase : NpcPhase.None;
+            s.InterferenceActive = npc.InterferenceActive;
+            s.NpcInterferenceTimer = Math.Max(0, npc.InterferenceTimer);
+            s.NpcLetters.AddRange(npc.Letters ?? new List<string>());
+            s.NpcUnread.AddRange(npc.Unread ?? new List<string>());
+            s.ActiveNpcLetterId = npc.ActiveLetterId;
+            s.CacheX = npc.CacheX;
+            s.CacheY = npc.CacheY;
+            s.CacheItemId = string.IsNullOrEmpty(npc.CacheItemId) ? "agua" : npc.CacheItemId;
+            s.CacheAmount = Math.Max(1, npc.CacheAmount);
+            s.CacheFilled = npc.CacheFilled;
+            s.SurvivorX = npc.SurvivorX;
+            s.SurvivorY = npc.SurvivorY;
+            s.SiteUnlocked = npc.SiteUnlocked;
+            s.SurvivorFound = npc.SurvivorFound;
+            s.SiteSkipped = npc.SiteSkipped;
+            s.RewardGranted = npc.RewardGranted;
+            s.PendingFinalChoice = npc.PendingFinalChoice;
+            s.NpcOutcome = Enum.TryParse<NpcOutcome>(npc.Outcome, out var outcome) ? outcome : NpcOutcome.None;
+            if (s.NpcInterferenceTimer <= 0) s.NpcInterferenceTimer = Balance.NpcInterferenceInterval;
+        }
+        else
+        {
+            // Older saves had no quest: place the sites and start the timer fresh.
+            var sites = WorldSetup.SpawnQuestSites(Rng);
+            s.CacheX = sites.CacheX;
+            s.CacheY = sites.CacheY;
+            s.SurvivorX = sites.SurvivorX;
+            s.SurvivorY = sites.SurvivorY;
+            NpcQuestSystem.ConfigureSites(s, Balance);
+        }
 
         foreach (var node in data.Nodes)
         {
@@ -660,6 +741,13 @@ public sealed class GameSession : IGameContext
         }
 
         s.Stations.Add(new Station(StationKind.Workbench, Balance.WorkbenchX, Balance.WorkbenchY));
+
+        var sites = WorldSetup.SpawnQuestSites(Rng);
+        s.CacheX = sites.CacheX;
+        s.CacheY = sites.CacheY;
+        s.SurvivorX = sites.SurvivorX;
+        s.SurvivorY = sites.SurvivorY;
+        NpcQuestSystem.ConfigureSites(s, Balance);
 
         s.Storm.Next = Balance.FirstStormDelay;
         return s;

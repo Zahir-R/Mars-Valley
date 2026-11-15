@@ -163,6 +163,17 @@ public sealed class BalanceConfig
     public double NextStormSpread { get; init; } = 38;
     public double StormWarningTime { get; init; } = 10;
 
+    // NPC survivor quest
+    /// <summary>Seconds between interference bursts while the ship is unrepaired.</summary>
+    public double NpcInterferenceInterval { get; init; } = 60;
+    public float NpcCacheMinDistance { get; init; } = 600f;
+    public float NpcCacheMaxDistance { get; init; } = 1000f;
+    public float NpcSurvivorMinDistance { get; init; } = 1600f;
+    public float NpcSurvivorMaxDistance { get; init; } = 2300f;
+    public int NpcCacheAmount { get; init; } = 3;
+    public float CacheInteractRadius { get; init; } = 44f;
+    public float SurvivorInteractRadius { get; init; } = 48f;
+
     // Consumables
     public int EatFoodGain { get; init; } = 30;
     public int EatEnergyGain { get; init; } = 10;

@@ -153,6 +153,57 @@ public static class WorldSetup
         return spawns;
     }
 
+    /// <summary>World positions for the NPC supply cache and the stranded survivor site.</summary>
+    public readonly record struct QuestSites(float CacheX, float CacheY, float SurvivorX, float SurvivorY);
+
+    /// <summary>
+    /// Picks a nearby cache and a far survivor site, both deterministic per session RNG.
+    /// The cache sits inside a short trip; the survivor is far enough that visiting costs
+    /// meaningful oxygen (a real trade-off against staying near the ship).
+    /// </summary>
+    public static QuestSites SpawnQuestSites(IRandom rng)
+    {
+        var b = BalanceConfig.Default;
+        var shipCx = b.ShipX + b.ShipWidth / 2f;
+        var shipCy = b.ShipY + b.ShipHeight / 2f;
+        var cache = PickPoint(rng, shipCx, shipCy, b.NpcCacheMinDistance, b.NpcCacheMaxDistance);
+        var site = PickPoint(rng, shipCx, shipCy, b.NpcSurvivorMinDistance, b.NpcSurvivorMaxDistance);
+
+        // Keep the two objectives well apart so they read as different places on the map.
+        var guard = 0;
+        while (Distance(cache, site) < 500f && guard++ < 240)
+        {
+            site = PickPoint(rng, shipCx, shipCy, b.NpcSurvivorMinDistance, b.NpcSurvivorMaxDistance);
+        }
+
+        return new QuestSites(cache.X, cache.Y, site.X, site.Y);
+    }
+
+    private static (float X, float Y) PickPoint(IRandom rng, float cx, float cy, float min, float max)
+    {
+        for (var attempt = 0; attempt < 240; attempt++)
+        {
+            var x = 60f + (float)rng.NextDouble() * (GeneratedBiomes.WorldWidth - 120f);
+            var y = 60f + (float)rng.NextDouble() * (GeneratedBiomes.WorldHeight - 120f);
+            var dx = x - cx;
+            var dy = y - cy;
+            var d = MathF.Sqrt(dx * dx + dy * dy);
+            if (d >= min && d <= max) return (x, y);
+        }
+
+        // Fallback: push straight out from the ship and clamp to the map.
+        var lx = Math.Clamp(cx + max, 60f, GeneratedBiomes.WorldWidth - 60f);
+        var ly = Math.Clamp(cy, 60f, GeneratedBiomes.WorldHeight - 60f);
+        return (lx, ly);
+    }
+
+    private static float Distance((float X, float Y) a, (float X, float Y) b)
+    {
+        var dx = a.X - b.X;
+        var dy = a.Y - b.Y;
+        return MathF.Sqrt(dx * dx + dy * dy);
+    }
+
     private static bool OverlapsShip(float x, float y)
     {
         var b = BalanceConfig.Default;

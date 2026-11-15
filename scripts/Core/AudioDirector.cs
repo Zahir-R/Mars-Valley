@@ -31,6 +31,7 @@ public partial class AudioDirector : Node
         AudioSfx.Register("inventario", Sounds + "Abrir_cerrar_Inventario.mp3", this);
         AudioSfx.Register("descanso", Sounds + "ventilacion_presurizacion.mp3", this);
         AudioSfx.Register("o2", Sounds + "AlertaOxigeno.mp3", this);
+        AudioSfx.Register("mensaje", Sounds + "radiostation.mp3", this);
         AudioSfx.Register("victoria", Sounds + "Descubrimientonuevo.mp3", this);
         AudioSfx.Register("derrota", Sounds + "GameOver.mp3", this);
 
@@ -51,7 +52,10 @@ public partial class AudioDirector : Node
         if (Session == null) return;
         Session.Events.Message += OnMessage;
         Session.Events.GameEnded += OnGameEnded;
+        Session.Events.LetterDelivered += OnLetterDelivered;
     }
+
+    private static void OnLetterDelivered(string letterId) => AudioSfx.Play("mensaje", -6f);
 
     private AudioStreamPlayer CreateLooped(string path, float volumeDb)
     {
