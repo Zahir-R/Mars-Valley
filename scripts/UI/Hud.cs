@@ -32,6 +32,8 @@ public partial class Hud : Control
     private readonly ModalHost _modal;
     private readonly HBoxContainer _topButtons;
     private readonly MenuHost _menu;
+    private readonly TutorialPanel _tutorial;
+    private readonly IntroOverlay _intro;
 
     private double _uiTimer;
 
@@ -58,6 +60,9 @@ public partial class Hud : Control
         AddChild(_stats.Icon);
         AddChild(_minimap);
 
+        _tutorial = new TutorialPanel(session);
+        AddChild(_tutorial.Root);
+
         _topButtons = BuildTopButtons();
         AddChild(_topButtons);
 
@@ -79,6 +84,10 @@ public partial class Hud : Control
         };
         _menu.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
         AddChild(_menu);
+
+        _intro = new IntroOverlay();
+        _intro.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        AddChild(_intro);
 
         _frame.BackToMenuRequested += () => QuitToMenu();
 
@@ -182,7 +191,11 @@ public partial class Hud : Control
         _menu.RefreshSlots();
     }
 
-    private void StartNewGame() => _session.Reset();
+    private void StartNewGame()
+    {
+        if (_intro.TryPlay(() => _session.Reset())) return;
+        _session.Reset();
+    }
 
     private void SaveCurrentSlot(string slot)
     {
@@ -290,6 +303,7 @@ public partial class Hud : Control
         _goals.Refresh();
         _dome.Refresh();
         _plant.Refresh();
+        _tutorial.Refresh();
         _log.Rebuild(_session);
     }
 
@@ -304,6 +318,9 @@ public partial class Hud : Control
         var pw = _stats.Root.Size.X;
         var x = -pw + _stats.Slide * (pw + 8f);
         _stats.Root.Position = new Vector2(x, Mathf.Max(12, size.Y * 0.5f - _stats.Root.Size.Y / 2f));
+
+        _tutorial.Root.ResetSize();
+        _tutorial.Root.Position = new Vector2(12, 164);
 
         _topButtons.ResetSize();
         _topButtons.Position = new Vector2(size.X - _topButtons.Size.X - 12, 12);

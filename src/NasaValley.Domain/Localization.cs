@@ -358,6 +358,26 @@ public static class Loc
         ["Pulsa «Cambiar» y luego una tecla para reasignar. Esc cancela."] =
             "Press \"Change\" then a key to rebind. Esc cancels.",
 
+        // ---- tutorial / intro ------------------------------------------------
+        ["Tutorial"] = "Tutorial",
+        ["Tutorial · paso {0}/{1}"] = "Tutorial · step {0}/{1}",
+        ["Saltar"] = "Skip",
+        ["Pulsa E para saltar"] = "Press E to skip",
+        ["¡Tutorial completado!"] = "Tutorial complete!",
+        ["Paso completado: {0}"] = "Step complete: {0}",
+        ["Muévete"] = "Move",
+        ["Usa W, A, S y D para caminar y explorar el cráter."] = "Use W, A, S and D to walk and explore the crater.",
+        ["Extrae hielo"] = "Mine ice",
+        ["Acércate a una veta de hielo y mantén E para extraer."] = "Approach an ice vein and hold E to mine.",
+        ["Recarga oxígeno"] = "Refill oxygen",
+        ["Vuelve a la nave, ábrela con E y recarga el traje con hielo."] =
+            "Return to the ship, open it with E and refill your suit with ice.",
+        ["Fabrica una herramienta"] = "Craft a tool",
+        ["Ve al Taller y fabrica un martillo para minar mejor."] = "Go to the Workshop and craft a hammer to mine better.",
+        ["Construye tu base"] = "Build your base",
+        ["Pulsa B, construye una cúpula, coloca una parcela en su terminal y planta."] =
+            "Press B, build a dome, place a farm plot from its terminal and plant.",
+
         // ---- descriptions ---------------------------------------------------
         ["Agua congelada bajo la superficie; fuente de agua y oxígeno."] =
             "Frozen water below the surface; a source of water and oxygen.",

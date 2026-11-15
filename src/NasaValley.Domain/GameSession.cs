@@ -200,6 +200,7 @@ public sealed class GameSession : IGameContext
         DamageSystem.Update(this, dt);
         NpcQuestSystem.Update(this, dt);
         SurvivalSystem.Update(this, dt);
+        TutorialSystem.Update(this);
         NormalizeFoodSource();
         EffectsSystem.Update(this, dt);
 
@@ -239,6 +240,25 @@ public sealed class GameSession : IGameContext
     public void ReadNpcLetter(string id) => NpcQuestSystem.Read(State, id);
 
     public int UnreadNpcCount => NpcQuestSystem.UnreadCount(State);
+
+    // ---- Tutorial -------------------------------------------------------------
+
+    public IReadOnlyList<TutorialStep> TutorialSteps => TutorialDatabase.Steps;
+
+    public TutorialStep? CurrentTutorialStep =>
+        State.TutorialDone || State.TutorialSkipped || State.TutorialStep >= TutorialDatabase.Steps.Count
+            ? null
+            : TutorialDatabase.Steps[State.TutorialStep];
+
+    public int TutorialIndex => State.TutorialStep;
+
+    public bool TutorialActive => CurrentTutorialStep != null;
+
+    public void SkipTutorial()
+    {
+        TutorialSystem.Skip(State);
+        Events.RaiseStateChanged();
+    }
 
     // ---- Launch ---------------------------------------------------------------
 
@@ -526,6 +546,9 @@ public sealed class GameSession : IGameContext
             FoodSource = s.FoodSource,
             SelectedCrop = s.SelectedCrop,
             ShipO2Charges = s.ShipO2Charges,
+            TutorialStep = s.TutorialStep,
+            TutorialDone = s.TutorialDone,
+            TutorialSkipped = s.TutorialSkipped,
             Vitals = new VitalsData
             {
                 O2 = s.Vitals.O2,
@@ -695,6 +718,9 @@ public sealed class GameSession : IGameContext
         }
 
         s.ShipO2Charges = Math.Clamp(data.ShipO2Charges, 0, Balance.ShipO2ChargesMax);
+        s.TutorialStep = Math.Max(0, data.TutorialStep);
+        s.TutorialDone = data.TutorialDone;
+        s.TutorialSkipped = data.TutorialSkipped;
 
         if (data.Npc != null)
         {

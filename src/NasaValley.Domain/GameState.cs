@@ -358,6 +358,11 @@ public sealed class GameState
     /// <summary>Fixture chosen in a dome terminal, placed on the next empty slot pressed with E.</summary>
     public FixtureKind? PendingFixture { get; set; }
 
+    // --- Tutorial ---------------------------------------------------------------
+    public int TutorialStep { get; set; }
+    public bool TutorialDone { get; set; }
+    public bool TutorialSkipped { get; set; }
+
     public string SelectedCrop { get; set; } = "lechuga";
 
     /// <summary>Item id currently chosen as the food source (eaten first with F).</summary>

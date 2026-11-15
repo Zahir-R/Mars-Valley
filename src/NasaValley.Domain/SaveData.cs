@@ -32,6 +32,11 @@ public sealed class SaveGameData
 
     /// <summary>Stranded-survivor quest state; null on saves made before the quest existed.</summary>
     public NpcSaveData? Npc { get; set; }
+
+    // Tutorial progress
+    public int TutorialStep { get; set; }
+    public bool TutorialDone { get; set; }
+    public bool TutorialSkipped { get; set; }
 }
 
 public sealed class NpcSaveData
