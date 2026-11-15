@@ -26,6 +26,9 @@ public sealed class SaveGameData
     public List<DomeData> Domes { get; set; } = new();
     public List<FieldData> Fields { get; set; } = new();
     public double RestCooldown { get; set; }
+
+    /// <summary>O2 refills the ship has left; old saves default to the full amount.</summary>
+    public int ShipO2Charges { get; set; } = 5;
 }
 
 public sealed class VitalsData

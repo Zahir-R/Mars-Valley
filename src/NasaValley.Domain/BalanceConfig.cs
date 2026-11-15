@@ -18,8 +18,8 @@ public sealed class BalanceConfig
 
     // Domes are empty shells: farms and utilities are placed inside them afterward.
     // The footprint leaves room for 12 interior slots (more than four farms).
-    public int DomeWidth { get; init; } = 220;
-    public int DomeHeight { get; init; } = 150;
+    public int DomeWidth { get; init; } = 264;
+    public int DomeHeight { get; init; } = 180;
     public int DomeSlotColumns { get; init; } = 4;
     public int DomeSlotRows { get; init; } = 3;
     public float DomeSlotGap { get; init; } = 10f;
@@ -36,6 +36,9 @@ public sealed class BalanceConfig
     public double DomePassiveSolar { get; init; } = 1.4;
     public double SolarPanelOutput { get; init; } = 2.0;
     public double DomeEnergyPerDegreePerSec { get; init; } = 0.008;
+    /// <summary>How many times the ship can refill O2 to 100% per run.</summary>
+    public int ShipO2ChargesMax { get; init; } = 5;
+
     public double RestEnergyGain { get; init; } = 60;
     public double RestCooldown { get; init; } = 15;
 
@@ -94,8 +97,8 @@ public sealed class BalanceConfig
     public float ShipHeight { get; init; } = 118;
 
     // Astronaut
-    public float NormalSpeed { get; init; } = 100f;
-    public float TiredSpeed { get; init; } = 62f;
+    public float NormalSpeed { get; init; } = 140f;
+    public float TiredSpeed { get; init; } = 87f;
     public float TiredEnergy { get; init; } = 15f;
     public float MoveMinX { get; init; } = 14f;
     public float MoveMaxX => WorldWidth - 14f;
@@ -153,11 +156,11 @@ public sealed class BalanceConfig
     public double LowFoodThreshold { get; init; } = 25;
     public double LowFoodReset { get; init; } = 40;
 
-    // Weather
-    public double FirstStormDelay { get; init; } = 85;
+    // Weather. Gaps scaled by 1/1.3 so storms strike ~30% more often.
+    public double FirstStormDelay { get; init; } = 65;
     public double StormDuration { get; init; } = 22;
-    public double NextStormMin { get; init; } = 70;
-    public double NextStormSpread { get; init; } = 50;
+    public double NextStormMin { get; init; } = 54;
+    public double NextStormSpread { get; init; } = 38;
     public double StormWarningTime { get; init; } = 10;
 
     // Consumables

@@ -327,11 +327,17 @@ public sealed class RefillO2Command : IGameCommand
         var b = ctx.Balance;
         if (!s.Running || s.Paused || s.Over) return;
         if (!InteractionSystem.NearShip(s, b)) return;
+        if (s.ShipO2Charges <= 0)
+        {
+            ctx.Say("El O₂ de la nave está agotado.", MessageKind.Warn);
+            return;
+        }
         if (s.Inventory["hielo"] < 1 || s.Vitals.O2 >= 100) return;
 
         s.Inventory.Remove("hielo", 1);
-        s.Vitals.O2 = Math.Min(100, s.Vitals.O2 + b.O2RefillAmount);
-        ctx.Say("Recargas oxígeno: +25 %.", MessageKind.Good);
+        s.Vitals.O2 = 100;
+        s.ShipO2Charges -= 1;
+        ctx.Say($"Recargas oxígeno: +100 %. ({s.ShipO2Charges} cargas restantes)", MessageKind.Good);
     }
 }
 

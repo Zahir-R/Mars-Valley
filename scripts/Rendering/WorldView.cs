@@ -66,9 +66,12 @@ public partial class WorldView : Node2D
         _camera.Position = target;
     }
 
+    private static bool InsideDome(GameState s, Dome dome) =>
+        s.Px >= dome.X && s.Px <= dome.X + dome.Width && s.Py >= dome.Y && s.Py <= dome.Y + dome.Height;
+
     private void DrawDomes(GameState s, BalanceConfig b, double clock)
     {
-        foreach (var dome in s.Domes) WorldDraw.DrawDome(this, dome, b);
+        foreach (var dome in s.Domes) WorldDraw.DrawDome(this, dome, b, s.Px, s.Py);
 
         var slotCount = DomeLayout.SlotCount(b);
         var highlighting = s.PendingFixture != null;
@@ -85,15 +88,17 @@ public partial class WorldView : Node2D
         foreach (var plot in s.Plots)
         {
             Session.Plants.TryGet(plot.PlantId, out var plant);
-            WorldDraw.DrawPlantSlot(this, plot, plant, b, clock);
+            var dim = plot.Dome != null && !InsideDome(s, plot.Dome);
+            WorldDraw.DrawPlantSlot(this, plot, plant, b, clock, dim);
         }
 
         foreach (var dome in s.Domes)
         {
+            var dim = !InsideDome(s, dome);
             foreach (var fixture in dome.Fixtures)
             {
                 var (x, y) = DomeLayout.SlotPosition(b, dome, fixture.SlotIndex);
-                WorldDraw.DrawFixture(this, fixture, x, y, b, clock);
+                WorldDraw.DrawFixture(this, fixture, x, y, b, clock, dim);
             }
         }
 

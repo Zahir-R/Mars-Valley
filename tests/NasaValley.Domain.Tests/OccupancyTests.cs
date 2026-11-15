@@ -126,7 +126,9 @@ public class OccupancyTests
         ClearSceneObjects(session);
 
         GiveDomeCost(session);
-        var node = new ResourceNode("iron", 410, 289, 4);
+        // With the larger dome the terminal hangs closer to the footprint; the node
+        // sits inside the terminal band but clear of the dome rectangle itself.
+        var node = new ResourceNode("iron", 432, 319, 4);
         session.State.Nodes.Add(node);
 
         Assert.False(BuildSystem.CanPlaceAt(session, 300, 120, out var reason));

@@ -101,7 +101,11 @@ public static class WorldSetup
             var distance = 90 + rng.NextDouble() * 260;
             var x = (float)(BalanceConfig.Default.ShipX + BalanceConfig.Default.ShipWidth / 2f + Math.Cos(angle) * distance);
             var y = (float)(BalanceConfig.Default.ShipY + BalanceConfig.Default.ShipHeight / 2f + Math.Sin(angle) * distance);
-            spawns.Add(new PickupSpawn(i < 8 ? "fijaciones" : "roca", i < 8 ? 1 : 2, x, y));
+            string itemId;
+            if (i < 8) itemId = "fijaciones";
+            else if (i < 11) itemId = "mango";
+            else itemId = "roca";
+            spawns.Add(new PickupSpawn(itemId, 1, x, y));
         }
 
         for (var i = 0; i < 18; i++)

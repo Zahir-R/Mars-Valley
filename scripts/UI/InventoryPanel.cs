@@ -134,7 +134,7 @@ public sealed class InventoryPanel
             {
                 Alignment = HorizontalAlignment.Left,
                 CustomMinimumSize = new Vector2(0, 34),
-                Icon = UiTheme.ColorTexture(Palette.FromHex(def.Color), 14),
+                Icon = SpriteFor(def.Id) ?? UiTheme.ColorTexture(Palette.FromHex(def.Color), 14),
                 FocusMode = Control.FocusModeEnum.None,
             };
             row.AddThemeFontOverride("font", Fonts.Sans);
@@ -221,6 +221,24 @@ public sealed class InventoryPanel
 
     private string ActionKey(ItemDefinition def) =>
         def.HasTag("Colocable") ? def.Id + ":" + (_session.State.Inventory[def.Id] > 0) : def.Id;
+
+    private static Texture2D? SpriteFor(string itemId)
+    {
+        var file = itemId switch
+        {
+            "hielo" => "agua hielo procesada.png",
+            "agua" => "contenedor_agua_procesada_092.png",
+            "hierro" => "lingote_hierro_procesado_091.png",
+            "silicio" => "siliceo.png",
+            "roca" => "fragmento_roca_silicatica_003.png",
+            "regolito" => "regolito_oxidado_granular_001.png",
+            "basalto" => "fragmento_basaltico_pequeno_016.png",
+            "fijaciones" => "pieza_metalica_fijacion_118.png",
+            "cupula" => "domo_habitat_presurizado_020.png",
+            _ => null,
+        };
+        return file == null ? null : SpriteArt.Get(file);
+    }
 
     private static string GroupOf(ItemDefinition def) => def.Category switch
     {

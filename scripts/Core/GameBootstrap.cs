@@ -22,6 +22,7 @@ public partial class GameBootstrap : Node
     private double _accumulator;
     private double _autosaveTimer;
     private string _typed = string.Empty;
+    private bool _pendingInteract;
 
     public override void _Ready()
     {
@@ -30,6 +31,9 @@ public partial class GameBootstrap : Node
 
         _session = new GameSession();
         _input = new InputAdapter();
+
+        var audio = new AudioDirector { Session = _session };
+        AddChild(audio);
 
         _hud = new Hud(_session, _input);
         AddChild(_hud);
@@ -99,6 +103,7 @@ public partial class GameBootstrap : Node
             // A menu is open: the world is frozen; only the menu sees input.
             _input.GetIntent();
             _accumulator = 0;
+            _pendingInteract = false;
             return;
         }
 
@@ -113,10 +118,16 @@ public partial class GameBootstrap : Node
             _hud.ToggleStats();
         }
 
+        if (_input.MinimapPressed())
+        {
+            _hud.ToggleMinimap();
+        }
+
         if (_session.State.ModalOpen)
         {
             _input.GetIntent();
             _accumulator = 0;
+            _pendingInteract = false;
             return;
         }
 
@@ -126,13 +137,15 @@ public partial class GameBootstrap : Node
         }
 
         var intent = _input.GetIntent();
+        // Latch the single-frame press; it survives frames that produce no fixed-step tick.
+        _pendingInteract |= intent.InteractPressed;
         _accumulator += Mathf.Min(delta, 0.25);
-        var pressed = intent.InteractPressed;
 
         while (_accumulator >= FixedStep)
         {
-            _session.Tick(intent with { InteractPressed = pressed }, FixedStep);
-            pressed = false;
+            var pressedThisTick = _pendingInteract;
+            _pendingInteract = false;
+            _session.Tick(intent with { InteractPressed = pressedThisTick }, FixedStep);
             _accumulator -= FixedStep;
         }
     }

@@ -24,7 +24,8 @@ public partial class Hud : Control
     private readonly DomePanel _dome;
     private readonly PlantPanel _plant;
     private readonly StatsDrawer _stats;
-    private readonly TouchPad _pad;
+    private readonly MinimapPanel _minimap;
+    private readonly ToastHost _toast = new();
     private readonly SubViewportContainer _viewport;
     private readonly GameFrame _frame;
     private readonly ModalHost _modal;
@@ -48,21 +49,21 @@ public partial class Hud : Control
         _goals = new GoalsPanel(session);
         _dome = new DomePanel(session, CloseModal);
         _plant = new PlantPanel(session, CloseModal);
-        _pad = new TouchPad(input, session.Eat);
         _stats = new StatsDrawer(session, ToggleStats);
+        _minimap = new MinimapPanel(session);
 
         AddChild(_stats.Root);
         AddChild(_stats.Icon);
+        AddChild(_minimap);
 
         _topButtons = BuildTopButtons();
         AddChild(_topButtons);
 
-        AddChild(_pad.Root);
-        _pad.Root.Visible = false;
-
         _modal = new ModalHost { OnClosed = CloseModal };
         AddChild(_modal);
         _modal.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+
+        AddChild(_toast);
 
         _menu = new MenuHost(session)
         {
@@ -126,23 +127,40 @@ public partial class Hud : Control
     private HBoxContainer BuildTopButtons()
     {
         var box = UiTheme.HBox(8);
-        box.AddChild(MenuButton("Diario", () => OpenPanel("log")));
-        box.AddChild(MenuButton("Misiones", () => OpenPanel("missions")));
-        box.AddChild(MenuButton("Inventario", () => OpenPanel("inventory")));
-        box.AddChild(MenuButton("Pausa", _session.TogglePause));
+        box.AddChild(ColoredButton("Diario", "#2e4a38", () => OpenPanel("log")));
+        box.AddChild(ColoredButton("Misiones", "#5c3a28", () => OpenPanel("missions")));
+        box.AddChild(ColoredButton("Inventario", "#274356", () => OpenPanel("inventory")));
+        box.AddChild(ColoredButton("Pausa", "#4a3a52", _session.TogglePause));
         return box;
     }
 
-    private static Button MenuButton(string text, System.Action onPressed)
+    private static Button ColoredButton(string text, string hex, System.Action onPressed)
     {
+        var bg = Color.FromHtml(hex);
         var button = UiTheme.GhostButton(text, 12);
+        var normal = UiTheme.Box(bg, bg.Lightened(0.25f), 1);
+        UiTheme.Pad(normal, 12, 6);
+        var hover = UiTheme.Box(bg.Lightened(0.12f), Palette.Dust, 1);
+        UiTheme.Pad(hover, 12, 6);
+
+        button.AddThemeStyleboxOverride("normal", normal);
+        button.AddThemeStyleboxOverride("hover", hover);
+        button.AddThemeStyleboxOverride("pressed", hover);
+        button.AddThemeColorOverride("font_color", new Color(0.93f, 0.91f, 0.86f));
         button.Pressed += onPressed;
         return button;
     }
 
     private void OnMessage(string text, MessageKind kind)
     {
-        _frame.OnMessage(text, kind);
+        if (_menu.Visible)
+        {
+            _menu.SetStatus(text, kind);
+        }
+        else
+        {
+            _toast.ShowMessage(text, kind);
+        }
         _log.Rebuild(_session);
     }
 
@@ -213,6 +231,8 @@ public partial class Hud : Control
 
     public void ToggleStats() => _stats.Toggle();
 
+    public void ToggleMinimap() => _minimap.Toggle();
+
     /// <summary>Opens a panel inside the modal shell and freezes the simulation.</summary>
     public void OpenPanel(string id)
     {
@@ -233,12 +253,14 @@ public partial class Hud : Control
 
         _session.OpenModal();
         _modal.Open(title, content);
+        AudioSfx.Play("inventario", -10f);
     }
 
     public void CloseModal()
     {
         _modal.Close();
         _session.CloseModal();
+        AudioSfx.Play("inventario", -16f);
     }
 
     private void BuildDomeFromModal()
@@ -281,12 +303,8 @@ public partial class Hud : Control
         _topButtons.ResetSize();
         _topButtons.Position = new Vector2(size.X - _topButtons.Size.X - 12, 12);
 
-        _pad.Root.Visible = DisplayServer.IsTouchscreenAvailable();
-        if (_pad.Root.Visible)
-        {
-            _pad.Root.ResetSize();
-            _pad.Root.Position = new Vector2(size.X - _pad.Root.Size.X - 12, size.Y - _pad.Root.Size.Y - 12);
-        }
+        _minimap.Position = new Vector2(12, 12);
+
     }
 }
 

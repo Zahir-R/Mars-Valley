@@ -39,6 +39,8 @@ public partial class MenuHost : Control
     private readonly Dictionary<string, Label> _keyLabels = new();
     private readonly Dictionary<string, Button> _changeButtons = new();
     private Control? _visibleView;
+    private Label _status = null!;
+    private int _statusSerial;
 
     private string? _capturing;
     private MenuContext _context = MenuContext.Start;
@@ -190,6 +192,34 @@ public partial class MenuHost : Control
         AddChild(_controlsView);
         AddChild(_saveSlotsView);
         AddChild(_loadSlotsView);
+
+        _status = UiTheme.Label(string.Empty, 12, Palette.Suit);
+        _status.HorizontalAlignment = HorizontalAlignment.Center;
+        _status.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        _status.CustomMinimumSize = new Vector2(320, 0);
+        _status.SetAnchorsAndOffsetsPreset(LayoutPreset.CenterBottom);
+        _status.OffsetTop -= 18;
+        _status.OffsetBottom -= 18;
+        _status.MouseFilter = MouseFilterEnum.Ignore;
+        _status.Visible = false;
+        AddChild(_status);
+    }
+
+    /// <summary>Brief status line shown inside the menu; hidden after a few seconds.</summary>
+    public void SetStatus(string text, MessageKind kind)
+    {
+        var accent = kind switch
+        {
+            MessageKind.Warn => Palette.Energy,
+            MessageKind.Good => Palette.Food,
+            _ => Palette.O2,
+        };
+        _status.Text = text;
+        _status.AddThemeColorOverride("font_color", accent);
+        _status.Visible = true;
+        var serial = ++_statusSerial;
+        var timer = GetTree().CreateTimer(2.6);
+        timer.Timeout += () => { if (serial == _statusSerial) _status.Visible = false; };
     }
 
     public void ShowRoot(MenuContext context)

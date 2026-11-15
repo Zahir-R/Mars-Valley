@@ -192,9 +192,8 @@ public static class InteractionSystem
         switch (plot.State)
         {
             case PlotState.Empty:
-                var selected = ctx.Plants[s.SelectedCrop];
                 return s.Inventory["semillas"] > 0
-                    ? $"Plantar {selected.Name.ToLowerInvariant()} (1 semilla)"
+                    ? "Plantar… (1 semilla)"
                     : "Sin semillas para plantar";
 
             case PlotState.Dry:

@@ -14,6 +14,9 @@ public partial class ModalHost : Control
 
     private readonly Label _title;
     private readonly MarginContainer _content;
+    private readonly ScrollContainer _scroll;
+    private readonly VBoxContainer _body;
+    private readonly PanelContainer _card;
     private Control? _active;
 
     public ModalHost()
@@ -33,9 +36,9 @@ public partial class ModalHost : Control
         center.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
         AddChild(center);
 
-        var card = new PanelContainer { CustomMinimumSize = new Vector2(540, 0) };
-        card.AddThemeStyleboxOverride("panel", UiTheme.Card(20));
-        center.AddChild(card);
+        _card = new PanelContainer { CustomMinimumSize = new Vector2(540, 0) };
+        _card.AddThemeStyleboxOverride("panel", UiTheme.Card(20));
+        center.AddChild(_card);
 
         _title = UiTheme.Text(string.Empty, 22, Palette.Suit, Fonts.DisplayWeight(700));
         _title.SizeFlagsHorizontal = SizeFlags.ExpandFill;
@@ -47,13 +50,21 @@ public partial class ModalHost : Control
         header.AddChild(_title);
         header.AddChild(close);
 
-        _content = new MarginContainer();
+        _scroll = new ScrollContainer
+        {
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            SizeFlagsVertical = SizeFlags.ExpandFill,
+            VerticalScrollMode = ScrollContainer.ScrollMode.Auto,
+            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
+        };
+        _content = new MarginContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
         _content.AddThemeConstantOverride("margin_top", 14);
+        _scroll.AddChild(_content);
 
-        var body = UiTheme.VBox(0);
-        body.AddChild(header);
-        body.AddChild(_content);
-        card.AddChild(body);
+        _body = UiTheme.VBox(0);
+        _body.AddChild(header);
+        _body.AddChild(_scroll);
+        _card.AddChild(_body);
     }
 
     public bool IsOpen => Visible;
@@ -64,6 +75,11 @@ public partial class ModalHost : Control
         _active = content;
         _content.AddChild(content);
         _title.Text = title;
+
+        // Bring up scrollbars when the content exceeds the available window height.
+        var cap = Mathf.Max(240f, GetViewportRect().Size.Y - 120f);
+        var wanted = content.GetCombinedMinimumSize().Y + 64f;
+        _scroll.CustomMinimumSize = new Vector2(0, Mathf.Min(Mathf.Max(wanted, 140f), cap));
         Visible = true;
     }
 

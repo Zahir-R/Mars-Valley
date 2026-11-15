@@ -19,10 +19,10 @@ public static class MovementSystem
 		var speed = s.Vitals.Energy < b.TiredEnergy ? b.TiredSpeed : b.NormalSpeed;
 
 		var nx = s.Px + dx * speed * (float)dt;
-		if (!Blocked(b, nx, s.Py)) s.Px = nx;
+		if (!Blocked(ctx, nx, s.Py)) s.Px = nx;
 
 		var ny = s.Py + dy * speed * (float)dt;
-		if (!Blocked(b, s.Px, ny)) s.Py = ny;
+		if (!Blocked(ctx, s.Px, ny)) s.Py = ny;
 
 		s.Px = Math.Clamp(s.Px, b.MoveMinX, b.MoveMaxX);
 		s.Py = Math.Clamp(s.Py, b.MoveMinY, b.MoveMaxY);
@@ -34,7 +34,38 @@ public static class MovementSystem
 		s.Walk += dt;
 	}
 
-	public static bool Blocked(BalanceConfig b, float x, float y)
+	public static bool Blocked(BalanceConfig b, float x, float y) => ShipBlocks(b, x, y);
+
+	/// <summary>
+	/// The ship always blocks; every active vein and every station block too.
+	/// Depleted veins stay walkable.
+	/// </summary>
+	public static bool Blocked(IGameContext ctx, float x, float y)
+	{
+		var s = ctx.State;
+		var b = ctx.Balance;
+		if (ShipBlocks(b, x, y)) return true;
+
+		var bx = x - b.BodyHalfWidth;
+		var by = y + 8 - 6;
+		var bw = b.BodyWidth;
+		var bh = b.BodyHeight;
+
+		foreach (var n in s.Nodes)
+		{
+			if (n.Amount <= 0) continue;
+			if (CircleRectOverlap(n.X, n.Y, b.NodeFootprintRadius, bx, by, bw, bh)) return true;
+		}
+
+		foreach (var station in s.Stations)
+		{
+			if (CircleRectOverlap(station.X, station.Y, b.StationFootprintRadius, bx, by, bw, bh)) return true;
+		}
+
+		return false;
+	}
+
+	private static bool ShipBlocks(BalanceConfig b, float x, float y)
 	{
 		var bx = x - b.BodyHalfWidth;
 		var by = y + 8 - 6;
@@ -42,6 +73,15 @@ public static class MovementSystem
 		var bh = b.BodyHeight;
 		return bx < b.ShipX + b.ShipWidth && bx + bw > b.ShipX
 			&& by < b.ShipY + b.ShipHeight && by + bh > b.ShipY;
+	}
+
+	private static bool CircleRectOverlap(float cx, float cy, float radius, float rx, float ry, float rw, float rh)
+	{
+		var px = MathF.Max(rx, MathF.Min(cx, rx + rw));
+		var py = MathF.Max(ry, MathF.Min(cy, ry + rh));
+		var dx = cx - px;
+		var dy = cy - py;
+		return dx * dx + dy * dy < radius * radius;
 	}
 }
 

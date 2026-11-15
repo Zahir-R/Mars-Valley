@@ -19,6 +19,8 @@ public sealed class PlantPanel
     private readonly Label _title;
     private readonly Label _subtitle;
     private readonly System.Action _onClose;
+    private readonly Dictionary<string, (Button Button, Label Status)> _rowControls = new();
+    private bool _rowsBuilt;
     private Plot? _plot;
 
     public PlantPanel(GameSession session, System.Action onClose)
@@ -56,18 +58,28 @@ public sealed class PlantPanel
         if (_plot == null) return;
         if (!Root.IsVisibleInTree()) return;
 
-        foreach (var child in _rows.GetChildren()) child.QueueFree();
-
-        foreach (var id in _session.Plants.Order)
+        if (!_rowsBuilt)
         {
-            var plant = _session.Plants[id];
+            foreach (var id in _session.Plants.Order)
+            {
+                var plant = _session.Plants[id];
+                var (row, button, status) = BuildRow(plant);
+                _rowControls[id] = (button, status);
+                _rows.AddChild(row);
+            }
+            _rowsBuilt = true;
+        }
+
+        foreach (var (id, controls) in _rowControls)
+        {
             var blocker = FarmingSystem.GrowthBlockerNow(_session, _plot, id);
-            var blocked = blocker.Length > 0;
-            _rows.AddChild(BuildRow(plant, blocker, blocked));
+            controls.Status.Text = blocker.Length > 0 ? blocker : "Crecerá aquí";
+            controls.Status.AddThemeColorOverride("font_color", blocker.Length > 0 ? Palette.Health : Palette.Food);
+            controls.Button.Disabled = _session.State.Inventory["semillas"] < 1;
         }
     }
 
-    private Control BuildRow(PlantDefinition plant, string blocker, bool blocked)
+    private (Control, Button, Label) BuildRow(PlantDefinition plant)
     {
         var row = new PanelContainer();
         var pad = UiTheme.Card(10);
@@ -79,7 +91,7 @@ public sealed class PlantPanel
         var detail = UiTheme.Label(
             $"{plant.GrowTime:0} s · {plant.WaterPerGrowth} agua · cosecha {plant.HarvestYield}",
             11, Palette.Muted);
-        var status = UiTheme.Label(blocked ? blocker : "Crecerá aquí", 11, blocked ? Palette.Health : Palette.Food);
+        var status = UiTheme.Label(string.Empty, 11, Palette.Food);
         status.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
 
         var texts = UiTheme.VBox(2);
@@ -90,7 +102,6 @@ public sealed class PlantPanel
 
         var button = UiTheme.PrimaryButton("Plantar", 12);
         button.CustomMinimumSize = new Vector2(120, 38);
-        button.Disabled = blocked || _session.State.Inventory["semillas"] < 1;
         button.Pressed += () => Plant(plant.Id);
 
         var content = UiTheme.HBox(10);
@@ -98,7 +109,7 @@ public sealed class PlantPanel
         content.AddChild(texts);
         content.AddChild(button);
         row.AddChild(content);
-        return row;
+        return (row, button, status);
     }
 
     private void Plant(string plantId)

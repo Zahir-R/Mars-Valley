@@ -57,6 +57,7 @@ public sealed class ShipPanel
     private readonly Label _hint;
     private readonly Button _refill;
     private readonly Button _melt;
+    private readonly Label _refillSub;
     private readonly List<PartRow> _parts = new();
 
     public ShipPanel(GameSession session)
@@ -88,13 +89,17 @@ public sealed class ShipPanel
             parts.AddChild(row.Root);
         }
 
-        _refill = UiTheme.SupportButton("Recargar O₂", "1 hielo → +25 %");
+        _refill = UiTheme.SupportButton("Recargar O₂", "1 hielo → O₂ a 100 % (máx. 5 cargas)");
         _melt = UiTheme.SupportButton("Fundir hielo", "1 hielo → 2 agua");
         _refill.Pressed += () => _session.RefillO2();
         _melt.Pressed += () => _session.MeltIce();
 
+        _refillSub = UiTheme.Label(string.Empty, 11, Palette.Muted);
         var supportButtons = UiTheme.HBox(8);
-        supportButtons.AddChild(Support(_refill, "1 hielo → +25 %"));
+        var refillBox = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        refillBox.AddChild(_refill);
+        refillBox.AddChild(_refillSub);
+        supportButtons.AddChild(refillBox);
         supportButtons.AddChild(Support(_melt, "1 hielo → 2 agua"));
 
         var support = UiTheme.VBox(8);
@@ -139,7 +144,9 @@ public sealed class ShipPanel
 
         foreach (var row in _parts) row.Refresh(_session);
 
-        _refill.Disabled = !near || s.Inventory["hielo"] < 1 || s.Vitals.O2 >= 100;
+        _refillSub.Text = $"1 hielo → O₂ a 100 % · {s.ShipO2Charges}/{_session.Balance.ShipO2ChargesMax} cargas";
+        _refillSub.AddThemeColorOverride("font_color", s.ShipO2Charges > 0 ? Palette.Muted : Palette.Health);
+        _refill.Disabled = !near || s.Inventory["hielo"] < 1 || s.Vitals.O2 >= 100 || s.ShipO2Charges <= 0;
         _melt.Disabled = !near || s.Inventory["hielo"] < 1;
     }
 }

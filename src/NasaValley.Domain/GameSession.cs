@@ -52,6 +52,8 @@ public sealed class GameSession : IGameContext
     public InteractionTarget? CurrentTarget { get; private set; }
     public string Prompt => InteractionSystem.PromptFor(CurrentTarget, this);
 
+    private double _noTargetTimer;
+
     // ---- Flow -----------------------------------------------------------------
 
     public void Start()
@@ -108,6 +110,7 @@ public sealed class GameSession : IGameContext
         State.Time += dt;
         MovementSystem.Update(this, intent, dt);
         State.ActionCooldown -= dt;
+        _noTargetTimer -= dt;
 
         if (State.Building)
         {
@@ -168,6 +171,13 @@ public sealed class GameSession : IGameContext
                     break;
                 case not null when intent.InteractPressed:
                     new InteractCommand(target).Execute(this);
+                    break;
+                default:
+                    if (intent.InteractPressed && _noTargetTimer <= 0)
+                    {
+                        Say("No hay nada con qué interactuar aquí.", MessageKind.Info);
+                        _noTargetTimer = 2.5;
+                    }
                     break;
             }
         }
@@ -290,7 +300,33 @@ public sealed class GameSession : IGameContext
         Say("Modo desarrollador activado: todos los objetos y cultivos acelerados.", MessageKind.Good);
     }
 
-    public void StartBuild() => StartPlacement(BuildSystem.StoredDomeItem);
+    public void StartBuild()
+    {
+        if (State.Flow != FlowState.Playing || State.ModalOpen) return;
+        var hasStored = State.Inventory[BuildSystem.StoredDomeItem] > 0;
+        var hasMaterials = true;
+        foreach (var (item, amount) in Balance.DomeCost)
+        {
+            if (State.Inventory.Has(item, amount)) continue;
+            hasMaterials = false;
+            break;
+        }
+
+        if (!hasStored && !hasMaterials)
+        {
+            var missing = string.Join(", ",
+                Balance.DomeCost
+                    .Where(kv => !State.Inventory.Has(kv.Key, kv.Value))
+                    .Select(kv => Items.TryGet(kv.Key, out var def) ? def.Name : kv.Key));
+            Say($"Faltan materiales para construir una cúpula ({missing}).", MessageKind.Warn);
+            return;
+        }
+
+        State.MovingDomeId = null;
+        State.PendingFixture = null;
+        State.PlacingItem = BuildSystem.StoredDomeItem;
+        State.Building = true;
+    }
 
     public void StartPlacement(string itemId)
     {
@@ -337,6 +373,7 @@ public sealed class GameSession : IGameContext
             FoodSource = s.FoodSource,
             SelectedCrop = s.SelectedCrop,
             RestCooldown = s.RestCooldown,
+            ShipO2Charges = s.ShipO2Charges,
             Vitals = new VitalsData
             {
                 O2 = s.Vitals.O2,
@@ -470,6 +507,7 @@ public sealed class GameSession : IGameContext
         }
 
         s.RestCooldown = Math.Max(0, data.RestCooldown);
+        s.ShipO2Charges = Math.Clamp(data.ShipO2Charges, 0, Balance.ShipO2ChargesMax);
 
         foreach (var node in data.Nodes)
         {
@@ -596,6 +634,7 @@ public sealed class GameSession : IGameContext
         {
             Px = Balance.StartX,
             Py = Balance.StartY,
+            ShipO2Charges = Balance.ShipO2ChargesMax,
         };
 
         s.Inventory["hielo"] = Balance.StartIce;

@@ -22,6 +22,7 @@ public sealed class InputAdapter
     public const string Pause = "pause";
     public const string Build = "build";
     public const string Stats = "stats";
+    public const string Minimap = "minimap";
 
     public sealed record BindingDefinition(string Action, string Label, Key DefaultKey, Key[] SecondaryKeys);
 
@@ -37,6 +38,7 @@ public sealed class InputAdapter
         new BindingDefinition(Pause, "Pausa", Key.P, new[] { Key.Escape }),
         new BindingDefinition(Build, "Construir cúpula", Key.B, System.Array.Empty<Key>()),
         new BindingDefinition(Stats, "Estadísticas", Key.Tab, System.Array.Empty<Key>()),
+        new BindingDefinition(Minimap, "Minimapa", Key.M, System.Array.Empty<Key>()),
     };
 
     public static void RegisterActions() => RegisterActions(null);
@@ -108,6 +110,7 @@ public sealed class InputAdapter
     public bool EatPressed() => Godot.Input.IsActionJustPressed(Eat);
     public bool BuildPressed() => Godot.Input.IsActionJustPressed(Build);
     public bool StatsPressed() => Godot.Input.IsActionJustPressed(Stats);
+    public bool MinimapPressed() => Godot.Input.IsActionJustPressed(Minimap);
 
     public void Clear()
     {

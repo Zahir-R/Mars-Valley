@@ -77,24 +77,6 @@ public static class WorldDraw
         c.DrawSetTransform(Vector2.Zero, 0, Vector2.One);
     }
 
-    private static void Crystal(CanvasItem c, float x, float y, float w, float h, Color a, Color b)
-    {
-        c.DrawColoredPolygon(new[]
-        {
-            new Vector2(x - w / 2, y),
-            new Vector2(x - w / 3, y - h),
-            new Vector2(x + w / 4, y - h * 0.92f),
-            new Vector2(x + w / 2, y),
-        }, a);
-
-        c.DrawColoredPolygon(new[]
-        {
-            new Vector2(x, y),
-            new Vector2(x + w / 4, y - h * 0.92f),
-            new Vector2(x + w / 2, y),
-        }, b);
-    }
-
     /// <summary>
     /// Subtle "you are here" ring under the astronaut so the player is easy to
     /// locate against the terrain. Purely a readability aid; the sprite is unchanged.
@@ -112,64 +94,27 @@ public static class WorldDraw
         var sh = n.Shake > 0 ? ((float)GD.Randf() - 0.5f) * 3 : 0;
         var col = Palette.FromHex(def.Color);
 
+        var sprite = def.Type switch
+        {
+            "ice" => SpriteArt.Get("hielo de agua mediano.png"),
+            "iron" => SpriteArt.Get("cristal oxido hierro rojizo mediano.png"),
+            "si" => SpriteArt.Get("siliceo.png"),
+            "regolith" => SpriteArt.Get("regolito_oxidado_granular_001.png"),
+            "basalt" => SpriteArt.Get("basaltomarciano_oscuro grande.png"),
+            _ => SpriteArt.Get("muestra_roca_sedimentaria_068.png"),
+        };
+
         c.DrawSetTransform(new Vector2(Mathf.Round(n.X + sh), Mathf.Round(n.Y)), 0, Vector2.One);
-        Fill(c, -15, 6, 30, 6, new Color(0, 0, 0, 0.28f));
+        Fill(c, -22, 8, 44, 6, new Color(0, 0, 0, 0.28f));
 
         if (n.Amount <= 0)
         {
-            var faded = col;
-            faded.A = 0.55f;
-            Fill(c, -6, 4, 4, 3, faded);
-            Fill(c, 3, 5, 3, 2, faded);
+            SpriteArt.DrawSprite(c, sprite, new Vector2(0, 0), 30, new Color(1, 1, 1, 0.32f));
             c.DrawSetTransform(Vector2.Zero, 0, Vector2.One);
             return;
         }
 
-        switch (def.Type)
-        {
-            case "ice":
-                Crystal(c, -8, 8, 14, 20, Palette.FromHex("#8fd3f4"), Palette.FromHex("#4aa3e0"));
-                Crystal(c, 6, 8, 12, 28, Palette.FromHex("#bfe8fa"), Palette.FromHex("#6fbbe6"));
-                Crystal(c, -1, 9, 10, 14, Palette.FromHex("#d8f3ff"), Palette.FromHex("#8fd3f4"));
-                Fill(c, 4, -14, 2, 5, Colors.White);
-                break;
-            case "iron":
-                Fill(c, -14, -2, 28, 12, Color.FromHtml("#4a3a35"));
-                Fill(c, -10, -8, 20, 8, Color.FromHtml("#4a3a35"));
-                Fill(c, -12, -3, 24, 8, Color.FromHtml("#6d5a52"));
-                Fill(c, -8, -8, 14, 5, Color.FromHtml("#6d5a52"));
-                Fill(c, -6, -1, 3, 2, Color.FromHtml("#c0653a"));
-                Fill(c, 4, 2, 4, 2, Color.FromHtml("#c0653a"));
-                Fill(c, -2, -6, 2, 2, Color.FromHtml("#c0653a"));
-                break;
-            case "rock":
-                Fill(c, -13, 2, 26, 10, Color.FromHtml("#5f574f"));
-                Fill(c, -10, -2, 10, 8, Color.FromHtml("#7d746a"));
-                Fill(c, 1, -4, 11, 9, Color.FromHtml("#8f867b"));
-                Fill(c, -8, -1, 5, 4, Color.FromHtml("#a49a8e"));
-                Fill(c, 4, 2, 4, 3, Color.FromHtml("#6a625a"));
-                break;
-            case "regolith":
-                Fill(c, -15, 4, 30, 7, Color.FromHtml("#7a4a30"));
-                Fill(c, -12, 0, 24, 6, Color.FromHtml("#a9704e"));
-                Fill(c, -8, -3, 16, 5, Color.FromHtml("#c08a62"));
-                Fill(c, -4, -5, 8, 4, Color.FromHtml("#d3a079"));
-                break;
-            case "basalt":
-                Fill(c, -14, 3, 28, 8, Color.FromHtml("#2f3338"));
-                Fill(c, -10, -8, 8, 12, Color.FromHtml("#4b525a"));
-                Fill(c, -1, -12, 7, 16, Color.FromHtml("#565e67"));
-                Fill(c, 7, -6, 6, 10, Color.FromHtml("#3d444b"));
-                Fill(c, -8, -6, 3, 6, Color.FromHtml("#6a737d"));
-                Fill(c, 0, -10, 2, 8, Color.FromHtml("#727c86"));
-                break;
-            default:
-                Crystal(c, -7, 8, 12, 18, Palette.FromHex("#e8dcb5"), Palette.FromHex("#bfae82"));
-                Crystal(c, 7, 8, 12, 24, Palette.FromHex("#f3ead0"), Palette.FromHex("#cdbd92"));
-                Crystal(c, 0, 9, 9, 12, Palette.FromHex("#fff6dc"), Palette.FromHex("#e0d2a8"));
-                Fill(c, 7, -12, 2, 2, Colors.White);
-                break;
-        }
+        SpriteArt.DrawSprite(c, sprite, new Vector2(0, -4), def.Type == "ice" ? 42 : 46);
 
         c.DrawSetTransform(Vector2.Zero, 0, Vector2.One);
 
@@ -194,21 +139,13 @@ public static class WorldDraw
         switch (st.Kind)
         {
             case StationKind.Workbench:
-                Fill(c, x - 14, y - 4, 28, 10, Color.FromHtml("#6d5a52"));
-                Fill(c, x - 14, y - 8, 28, 5, Color.FromHtml("#8a7568"));
-                Fill(c, x - 10, y - 13, 5, 6, Color.FromHtml("#c9c3b4"));
-                Fill(c, x + 3, y - 12, 4, 5, Color.FromHtml("#d0a24c"));
-                Fill(c, x - 13, y + 6, 3, 6, Color.FromHtml("#4a3a35"));
-                Fill(c, x + 10, y + 6, 3, 6, Color.FromHtml("#4a3a35"));
+                SpriteArt.DrawSprite(c, SpriteArt.Get("estacion_trabajo_modular_037.png"), new Vector2(x, y - 2), 56);
                 break;
             default:
-                Fill(c, x - 10, y - 12, 20, 16, Color.FromHtml("#2a3b3f"));
-                Fill(c, x - 6, y - 8, 12, 8, Palette.O2);
+                SpriteArt.DrawSprite(c, SpriteArt.Get("maquinaria_procesamiento_mineral_046.png"), new Vector2(x, y - 2), 56);
                 break;
         }
 
-        Fill(c, x - 1, y - 20, 2, 6, Palette.O2);
-        Fill(c, x - 3, y - 23, 6, 6, Palette.O2);
     }
 
     /// <summary>A loose item resting on the ground, gently bobbing with a soft glow.</summary>
@@ -225,9 +162,17 @@ public static class WorldDraw
         glow.A = 0.18f;
         c.DrawCircle(new Vector2(x, y), 12, glow);
 
-        Fill(c, x - 5, y - 5, 10, 10, col);
-        Fill(c, x - 3, y - 7, 6, 2, col.Lightened(0.3f));
-        Fill(c, x + 6, y - 10, 2, 2, Colors.White);
+        var sprite = def.Id switch
+        {
+            "hielo" => SpriteArt.Get("agua hielo procesada.png"),
+            "hierro" => SpriteArt.Get("cristal_oxido_hierro_rojizo_pequeno_029.png"),
+            "silicio" => SpriteArt.Get("fragmento_silice_pequeno_038.png"),
+            "regolito" => SpriteArt.Get("regolito_oxidado_granular_002.png"),
+            "basalto" => SpriteArt.Get("fragmento_basaltico_pequeno_016.png"),
+            _ => SpriteArt.Get("fragmento_roca_silicatica_003.png"),
+        };
+
+        SpriteArt.DrawSprite(c, sprite, new Vector2(x, y), 30);
     }
 
     public static void DrawShip(CanvasItem c, GameState s, BalanceConfig b, double clock)
@@ -339,17 +284,24 @@ public static class WorldDraw
     }
 
     /// <summary>Translucent greenhouse dome covering its footprint.</summary>
-    public static void DrawDome(CanvasItem c, Dome dome, BalanceConfig b)
+    public static void DrawDome(CanvasItem c, Dome dome, BalanceConfig b, float playerX = -1f, float playerY = -1f)
     {
         var cx = dome.X + dome.Width / 2f;
         var cy = dome.Y + dome.Height / 2f;
         var rx = dome.Width / 2f;
         var ry = dome.Height / 2f;
 
-        Fill(c, dome.X + 2, dome.Y + dome.Height * 0.45f, dome.Width - 4, dome.Height * 0.5f,
-            Color.FromHtml("#2a1d18"));
+        var inside = playerX >= dome.X && playerX <= dome.X + dome.Width &&
+                     playerY >= dome.Y && playerY <= dome.Y + dome.Height;
+        var modulate = inside ? new Color(1, 1, 1, 0.6f) : Colors.White;
 
-        var glass = new Color(143 / 255f, 211 / 255f, 244 / 255f, 0.18f);
+        Fill(c, dome.X + 2, dome.Y + dome.Height * 0.45f, dome.Width - 4, dome.Height * 0.5f,
+            new Color(42 / 255f, 29 / 255f, 24 / 255f, 0.45f));
+
+        SpriteArt.DrawSprite(c, SpriteArt.Get("domo_habitat_presurizado_020.png"),
+            new Vector2(cx, cy - 4), dome.Height + 2, modulate);
+
+        var glass = new Color(143 / 255f, 211 / 255f, 244 / 255f, 0.09f);
         var rim = Color.FromHtml("#8c8678");
 
         const int segments = 40;
@@ -360,11 +312,7 @@ public static class WorldDraw
             poly[i] = new Vector2(cx + Mathf.Cos(a) * rx, cy + Mathf.Sin(a) * ry);
         }
         c.DrawColoredPolygon(poly, glass);
-        for (var i = 0; i < segments; i++)
-        {
-            c.DrawLine(poly[i], poly[(i + 1) % segments], rim, 2);
-        }
-        c.DrawLine(new Vector2(cx - rx, cy), new Vector2(cx + rx, cy), new Color(1, 1, 1, 0.12f), 1);
+        c.DrawArc(new Vector2(cx, cy), Mathf.Min(rx, ry), 0, Mathf.Tau, 40, rim, 1f);
     }
 
     /// <summary>The small management console anchored below a dome.</summary>
@@ -387,18 +335,21 @@ public static class WorldDraw
     }
 
     /// <summary>A single crop slot inside a dome, tinted by its plant and progress.</summary>
-    public static void DrawPlantSlot(CanvasItem c, Plot p, PlantDefinition? plant, BalanceConfig b, double clock)
+    public static void DrawPlantSlot(CanvasItem c, Plot p, PlantDefinition? plant, BalanceConfig b, double clock, bool dimmed = false)
     {
+        var dim = dimmed ? 0.5f : 1f;
+        Color A(Color col) => new(col.R, col.G, col.B, col.A * dim);
+
         var x = Mathf.Round(p.X);
         var y = Mathf.Round(p.Y);
         var s = b.PlotSize;
 
-        Fill(c, x, y, s, s, Color.FromHtml("#241812"));
-        Stroke(c, x, y, s, s, Color.FromHtml("#4a3124"), 1);
+        Fill(c, x, y, s, s, A(Color.FromHtml("#241812")));
+        Stroke(c, x, y, s, s, A(Color.FromHtml("#4a3124")), 1);
 
         if (plant == null || p.State == PlotState.Empty)
         {
-            Fill(c, x + s / 2f - 2, y + s / 2f - 2, 4, 4, Color.FromHtml("#3a2a1e"));
+            Fill(c, x + s / 2f - 2, y + s / 2f - 2, 4, 4, A(Color.FromHtml("#3a2a1e")));
             return;
         }
 
@@ -408,21 +359,21 @@ public static class WorldDraw
         switch (p.State)
         {
             case PlotState.Dry:
-                Fill(c, x + s / 2f - 3, y + s / 2f, 6, 3, col.Darkened(0.2f));
+                Fill(c, x + s / 2f - 3, y + s / 2f, 6, 3, A(col.Darkened(0.2f)));
                 break;
             case PlotState.Grow:
                 var progress = 1f - (float)(p.Time / Mathf.Max(1f, (float)plant.GrowTime));
                 var h = 4 + progress * (s - 10);
-                Fill(c, midX - 1, y + s - 6 - h, 2, h, Color.FromHtml("#5c8a3a"));
-                Fill(c, midX - 5, y + s - 8 - h, 5, 3, col);
-                Fill(c, midX + 1, y + s - 12 - h, 5, 3, col);
+                Fill(c, midX - 1, y + s - 6 - h, 2, h, A(Color.FromHtml("#5c8a3a")));
+                Fill(c, midX - 5, y + s - 8 - h, 5, 3, A(col));
+                Fill(c, midX + 1, y + s - 12 - h, 5, 3, A(col));
                 break;
             default:
                 var bob = Mathf.Sin((float)clock * 2f + p.X) * 1f;
-                Fill(c, midX - 1, y + 4 + bob, 2, s - 10, Color.FromHtml("#5c8a3a"));
-                Fill(c, midX - 7, y + 6 + bob, 7, 5, col);
-                Fill(c, midX + 1, y + 2 + bob, 7, 5, col.Lightened(0.1f));
-                Fill(c, midX - 4, y - 1 + bob, 5, 4, col.Lightened(0.2f));
+                Fill(c, midX - 1, y + 4 + bob, 2, s - 10, A(Color.FromHtml("#5c8a3a")));
+                Fill(c, midX - 7, y + 6 + bob, 7, 5, A(col));
+                Fill(c, midX + 1, y + 2 + bob, 7, 5, A(col.Lightened(0.1f)));
+                Fill(c, midX - 4, y - 1 + bob, 5, 4, A(col.Lightened(0.2f)));
                 break;
         }
     }
@@ -446,43 +397,34 @@ public static class WorldDraw
     }
 
     /// <summary>A utility placed on a dome slot (solar panel, battery or bunk).</summary>
-    public static void DrawFixture(CanvasItem c, Fixture fixture, float x, float y, BalanceConfig b, double clock)
+    public static void DrawFixture(CanvasItem c, Fixture fixture, float x, float y, BalanceConfig b, double clock, bool dimmed = false)
     {
+        var dim = dimmed ? 0.5f : 1f;
+        var mod = new Color(1, 1, 1, dim);
         var s = b.PlotSize;
-        Fill(c, x, y, s, s, Color.FromHtml("#241812"));
-        Stroke(c, x, y, s, s, Color.FromHtml("#4a3124"), 1);
+        Fill(c, x, y, s, s, new Color(36 / 255f, 24 / 255f, 18 / 255f, dim));
+        Stroke(c, x, y, s, s, new Color(74 / 255f, 49 / 255f, 36 / 255f, dim), 1);
 
         switch (fixture.Kind)
         {
             case FixtureKind.SolarPanel:
-                Fill(c, x + 4, y + 6, s - 8, s - 12, Color.FromHtml("#1d3550"));
-                Stroke(c, x + 4, y + 6, s - 8, s - 12, Color.FromHtml("#4aa3e0"), 1);
-                for (var i = 1; i < 3; i++)
-                {
-                    Fill(c, x + 4 + i * (s - 8) / 3f, y + 6, 1, s - 12, Color.FromHtml("#4aa3e0"));
-                }
-                Fill(c, x + 4, y + s / 2f, s - 8, 1, Color.FromHtml("#4aa3e0"));
+                SpriteArt.DrawSprite(c, SpriteArt.Get("sistema_energia_panel_bateria_064.png"),
+                    new Vector2(x + s / 2f, y + s / 2f), s - 6, mod);
                 break;
 
             case FixtureKind.Battery:
-                Fill(c, x + 7, y + 8, s - 14, s - 14, Color.FromHtml("#2d2a20"));
-                Stroke(c, x + 7, y + 8, s - 14, s - 14, Color.FromHtml("#d9c45a"), 1);
-                Fill(c, x + s / 2f - 3, y + 4, 6, 4, Color.FromHtml("#d9c45a"));
-                for (var i = 0; i < 3; i++)
-                {
-                    Fill(c, x + 10 + i * 4, y + s - 14, 2, 5, Color.FromHtml("#9ccf5a"));
-                }
+                SpriteArt.DrawSprite(c, SpriteArt.Get("sistema_energia_panel_bateria_071.png"),
+                    new Vector2(x + s / 2f, y + s / 2f + 1), s - 8, mod);
                 break;
 
             case FixtureKind.Bunk:
-                Fill(c, x + 4, y + 9, s - 8, s - 16, Color.FromHtml("#7a4b33"));
-                Stroke(c, x + 4, y + 9, s - 8, s - 16, Color.FromHtml("#c9a45a"), 1);
-                Fill(c, x + 6, y + 11, 7, s - 20, Color.FromHtml("#e8e2d4"));
-                Fill(c, x + 14, y + 11, s - 20, s - 20, Color.FromHtml("#2f5d7a"));
+                SpriteArt.DrawSprite(c, SpriteArt.Get("sistema_soporte_vital_079.png"),
+                    new Vector2(x + s / 2f, y + s / 2f), s - 8, mod);
                 break;
 
             default:
-                Fill(c, x + 6, y + 6, s - 12, s - 12, Color.FromHtml("#3a2a1e"));
+                SpriteArt.DrawSprite(c, SpriteArt.Get("recipiente_metalico_105.png"),
+                    new Vector2(x + s / 2f, y + s / 2f), s - 10, mod);
                 break;
         }
     }

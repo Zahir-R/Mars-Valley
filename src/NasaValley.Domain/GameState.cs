@@ -263,6 +263,9 @@ public sealed class GameState
     public double WinTimer { get; set; }
     public bool Win { get; set; }
 
+    /// <summary>Oxygen refills the ship has left (each one refills to 100%).</summary>
+    public int ShipO2Charges { get; set; } = 5;
+
     public Inventory Inventory { get; } = new();
     public Vitals Vitals { get; } = new();
     public Dictionary<string, bool> Repairs { get; } = new();
