@@ -43,6 +43,9 @@ public sealed class Plot
     public Dome? Dome { get; set; }
     public int SlotIndex { get; init; } = -1;
 
+    /// <summary>Structural damage from dust storms (0-100). Open-air plots only.</summary>
+    public double Damage { get; set; }
+
     public void MoveTo(float x, float y)
     {
         X = x;
@@ -85,10 +88,19 @@ public sealed class Dome
     public float TerminalY => Y + Height + 16f;
 
     public int PanelCount => CountFixtures(FixtureKind.SolarPanel);
+    public int DeployedPanelCount
+    {
+        get
+        {
+            var count = 0;
+            foreach (var fixture in Fixtures)
+            {
+                if (fixture.Kind == FixtureKind.SolarPanel && fixture.Deployed) count++;
+            }
+            return count;
+        }
+    }
     public int BatteryCount => CountFixtures(FixtureKind.Battery);
-    public int BunkCount => CountFixtures(FixtureKind.Bunk);
-
-    public bool HasBunk => BunkCount > 0;
 
     public bool IsSlotOccupied(int slotIndex)
     {
@@ -131,7 +143,6 @@ public enum FixtureKind
     Farm,
     SolarPanel,
     Battery,
-    Bunk,
 }
 
 /// <summary>A non-farm utility placed on one of a dome's interior slots.</summary>
@@ -145,6 +156,30 @@ public sealed class Fixture
 
     public FixtureKind Kind { get; }
     public int SlotIndex { get; }
+
+    /// <summary>Solar panels can be retracted to avoid storm damage.</summary>
+    public bool Deployed { get; set; } = true;
+
+    /// <summary>Structural damage from dust storms (0-100). Deployed panels only.</summary>
+    public double Damage { get; set; }
+
+    /// <summary>Battery reserve (0-40). Charges from solar panels; spent on suit refills.</summary>
+    public double Stored { get; set; }
+}
+
+/// <summary>An outdoor light/heat tower. It drains a nearby dome and enables crops around it.</summary>
+public sealed class Beacon
+{
+    public Beacon(float x, float y)
+    {
+        X = x;
+        Y = y;
+    }
+
+    public float X { get; }
+    public float Y { get; }
+    public double Damage { get; set; }
+    public bool Powered { get; set; }
 }
 
 public sealed class ResourceNode
@@ -297,6 +332,7 @@ public sealed class GameState
     public List<Pickup> Pickups { get; } = new();
     public List<Station> Stations { get; } = new();
     public List<Dome> Domes { get; } = new();
+    public List<Beacon> Beacons { get; } = new();
 
     /// <summary>True while a UI modal is open; the simulation is frozen but the flow stays Playing.</summary>
     public bool ModalOpen { get; set; }
@@ -321,9 +357,6 @@ public sealed class GameState
 
     /// <summary>Fixture chosen in a dome terminal, placed on the next empty slot pressed with E.</summary>
     public FixtureKind? PendingFixture { get; set; }
-
-    /// <summary>Remaining rest cooldown (seconds) before a bunk can be used again.</summary>
-    public double RestCooldown { get; set; }
 
     public string SelectedCrop { get; set; } = "lechuga";
 

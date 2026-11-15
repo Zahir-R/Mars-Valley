@@ -20,8 +20,8 @@ public sealed class TopBar
     public TopBar(GameSession session, Action onPause)
     {
         var mark = new BrandMark { CustomMinimumSize = new Vector2(34, 34) };
-        var title = UiTheme.Text("Varados en Marte", 20, Palette.Suit, Fonts.DisplayWeight(700));
-        var subtitle = UiTheme.Label("Misión Ares-7 · Cráter Gale", 12, Palette.Muted);
+        var title = UiTheme.Text("Mars Valley", 20, Palette.Suit, Fonts.DisplayWeight(700));
+        var subtitle = UiTheme.Label(Loc.T("Misión Ares-7 · Cráter Gale"), 12, Palette.Muted);
         var titleBox = UiTheme.VBox(3);
         titleBox.AddChild(title);
         titleBox.AddChild(subtitle);
@@ -32,13 +32,13 @@ public sealed class TopBar
 
         var env = UiTheme.HBox(22);
         env.AddThemeConstantOverride("separation", 22);
-        _sol = AddEnv(env, "Sol", "1", false);
-        _time = AddEnv(env, "Hora local", "06:00", false);
-        _temp = AddEnv(env, "Exterior", "-70 °C", false);
-        AddEnv(env, "Presión", "6,1 mbar", true);
-        AddEnv(env, "Gravedad", "0,38 g", true);
+        _sol = AddEnv(env, Loc.T("Sol"), "1", false);
+        _time = AddEnv(env, Loc.T("Hora local"), "06:00", false);
+        _temp = AddEnv(env, Loc.T("Exterior"), "-70 °C", false);
+        AddEnv(env, Loc.T("Presión"), "6,1 mbar", true);
+        AddEnv(env, Loc.T("Gravedad"), "0,38 g", true);
 
-        PauseButton = UiTheme.GhostButton("Pausa");
+        PauseButton = UiTheme.GhostButton(Loc.T("Pausa"));
         PauseButton.Pressed += onPause;
 
         var spacer = new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };

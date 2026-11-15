@@ -66,6 +66,21 @@ public static class BuildSystem
             return;
         }
 
+        if (s.PlacingItem == "beacon")
+        {
+            s.BuildX = Snap(s.Px - b.PlotSize / 2f);
+            s.BuildY = Snap(s.Py - b.PlotSize / 2f);
+
+            if (!intent.InteractPressed) return;
+
+            if (!TryPlaceBeacon(ctx, s.BuildX, s.BuildY, out var beaconReason))
+            {
+                ctx.Say(beaconReason, MessageKind.Warn);
+                return;
+            }
+            return;
+        }
+
         s.BuildX = Snap(s.Px - b.DomeWidth / 2f);
         s.BuildY = Snap(s.Py - b.DomeHeight / 2f);
 
@@ -105,7 +120,7 @@ public static class BuildSystem
 
         if (!WorldOccupancy.IsClear(ctx, WorldOccupancy.PlacementTerminalRect(b, x, y), out blocker))
         {
-            reason = $"El terminal chocaría con {blocker}.";
+            reason = Loc.F("El terminal chocaría con {0}.", blocker);
             return false;
         }
 
@@ -116,7 +131,7 @@ public static class BuildSystem
             {
                 if (!s.Inventory.Has(item, amount))
                 {
-                    reason = $"Faltan materiales: {ctx.Items[item].Name}.";
+                    reason = Loc.F("Faltan materiales: {0}.", Loc.T(ctx.Items[item].Name));
                     return false;
                 }
             }
@@ -169,14 +184,17 @@ public static class BuildSystem
 
         if (!WorldOccupancy.IsClear(ctx, WorldOccupancy.PlacementRect(b, x, y, b.PlotSize, b.PlotSize), out var blocker))
         {
-            reason = $"Ahí hay {blocker}.";
+            reason = Loc.F("Ahí hay {0}.", blocker);
             return false;
         }
 
-        if (s.Inventory["parcela"] < 1)
+        foreach (var (item, amount) in b.FieldCost)
         {
-            reason = "No tienes una bandeja de cultivo.";
-            return false;
+            if (!s.Inventory.Has(item, amount))
+            {
+                reason = Loc.F("Faltan materiales: {0}.", Loc.T(ctx.Items[item].Name));
+                return false;
+            }
         }
 
         reason = string.Empty;
@@ -188,8 +206,9 @@ public static class BuildSystem
         if (!CanPlaceField(ctx, x, y, out reason)) return false;
 
         var s = ctx.State;
+        var b = ctx.Balance;
 
-        s.Inventory.Remove("parcela", 1);
+        foreach (var (item, amount) in b.FieldCost) s.Inventory.Remove(item, amount);
         var plot = new Plot(x, y) { SlotIndex = -1 };
         s.Plots.Add(plot);
 
@@ -197,6 +216,53 @@ public static class BuildSystem
         s.PlacingItem = null;
         reason = string.Empty;
         ctx.Say("Colocas una bandeja de cultivo en el terreno.", MessageKind.Good);
+        return true;
+    }
+
+    /// <summary>Places an outdoor beacon that lights and heats nearby open-air plots.</summary>
+    public static bool CanPlaceBeacon(IGameContext ctx, float x, float y, out string reason)
+    {
+        var s = ctx.State;
+        var b = ctx.Balance;
+
+        if (x < b.MoveMinX || y < b.MoveMinY ||
+            x + b.PlotSize > b.MoveMaxX || y + b.PlotSize > b.MoveMaxY)
+        {
+            reason = "La baliza no cabe ahí.";
+            return false;
+        }
+
+        if (!WorldOccupancy.IsClear(ctx, WorldOccupancy.PlacementRect(b, x, y, b.PlotSize, b.PlotSize), out var blocker))
+        {
+            reason = Loc.F("Ahí hay {0}.", blocker);
+            return false;
+        }
+
+        foreach (var (item, amount) in b.BeaconCost)
+        {
+            if (!s.Inventory.Has(item, amount))
+            {
+                reason = Loc.F("Faltan materiales: {0}.", Loc.T(ctx.Items[item].Name));
+                return false;
+            }
+        }
+
+        reason = string.Empty;
+        return true;
+    }
+
+    public static bool TryPlaceBeacon(IGameContext ctx, float x, float y, out string reason)
+    {
+        if (!CanPlaceBeacon(ctx, x, y, out reason)) return false;
+
+        var s = ctx.State;
+        var b = ctx.Balance;
+        foreach (var (item, amount) in b.BeaconCost) s.Inventory.Remove(item, amount);
+
+        s.Beacons.Add(new Beacon(x + b.PlotSize / 2f, y + b.PlotSize / 2f));
+        s.Building = false;
+        s.PlacingItem = null;
+        ctx.Say("Colocas una baliza de luz y calor.", MessageKind.Good);
         return true;
     }
 
@@ -224,7 +290,7 @@ public static class BuildSystem
         s.Building = false;
         s.MovingDomeId = null;
         s.PlacingItem = null;
-        ctx.Say($"Mueves la cúpula {dome.Id}.", MessageKind.Good);
+        ctx.Say(Loc.F("Mueves la cúpula {0}.", dome.Id), MessageKind.Good);
         return true;
     }
 
@@ -235,7 +301,6 @@ public static class BuildSystem
         FixtureKind.Farm => b.FarmCost,
         FixtureKind.SolarPanel => b.SolarPanelCost,
         FixtureKind.Battery => b.BatteryCost,
-        FixtureKind.Bunk => b.BunkCost,
         _ => EmptyCost,
     };
 
@@ -244,7 +309,6 @@ public static class BuildSystem
         FixtureKind.Farm => "parcela de cultivo",
         FixtureKind.SolarPanel => "panel solar",
         FixtureKind.Battery => "batería",
-        FixtureKind.Bunk => "litera",
         _ => "objeto",
     };
 
@@ -278,7 +342,7 @@ public static class BuildSystem
         {
             if (!s.Inventory.Has(item, amount))
             {
-                reason = $"Faltan materiales: {ctx.Items[item].Name}.";
+                reason = Loc.F("Faltan materiales: {0}.", Loc.T(ctx.Items[item].Name));
                 return false;
             }
         }
@@ -307,7 +371,7 @@ public static class BuildSystem
             dome.Fixtures.Add(new Fixture(kind, slotIndex));
         }
 
-        ctx.Say($"Colocas una {FixtureName(kind)} en la cúpula {dome.Id}.", MessageKind.Good);
+        ctx.Say(Loc.F("Colocas una {0} en la cúpula {1}.", Loc.T(FixtureName(kind)), dome.Id), MessageKind.Good);
         return true;
     }
 
@@ -343,7 +407,7 @@ public static class BuildSystem
         foreach (var (item, amount) in cost) ctx.State.Inventory.Remove(item, amount);
         dome.Level++;
         dome.Energy = Math.Min(dome.EnergyCapacity(ctx.Balance), dome.Energy + ctx.Balance.DomeStartEnergy);
-        ctx.Say($"Cúpula {dome.Id} mejorada al nivel {dome.Level}.", MessageKind.Good);
+        ctx.Say(Loc.F("Cúpula {0} mejorada al nivel {1}.", dome.Id, dome.Level), MessageKind.Good);
         return true;
     }
 

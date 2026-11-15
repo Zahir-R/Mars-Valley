@@ -16,6 +16,9 @@ public partial class GameBootstrap : Node
     private const string DevPhrase = "marscolonization";
     private const double AutosaveSeconds = 60.0;
 
+    /// <summary>Set before reloading the scene after a language change so the run is restored.</summary>
+    public static bool LoadAutosaveOnBoot { get; set; }
+
     private GameSession _session = null!;
     private InputAdapter _input = null!;
     private Hud _hud = null!;
@@ -27,9 +30,16 @@ public partial class GameBootstrap : Node
     public override void _Ready()
     {
         InputAdapter.RegisterActions(SettingsService.Current);
+        Loc.Language = SettingsService.GetLanguage();
         SettingsService.ApplyAudio();
 
         _session = new GameSession();
+        if (LoadAutosaveOnBoot)
+        {
+            LoadAutosaveOnBoot = false;
+            SaveManager.TryLoad(_session, SaveSlots.Autosave, out _);
+        }
+
         _input = new InputAdapter();
 
         var audio = new AudioDirector { Session = _session };
@@ -110,7 +120,7 @@ public partial class GameBootstrap : Node
         if (_input.BuildPressed() && _session.State.Running &&
             !_session.State.ModalOpen && !_session.State.Building)
         {
-            _session.StartBuild();
+            _hud.OpenPanel("build");
         }
 
         if (_input.StatsPressed() && _session.State.Running && !_session.State.ModalOpen)

@@ -121,11 +121,12 @@ public partial class AudioDirector : Node
 
     private static void OnMessage(string text, MessageKind kind)
     {
-        if (text.Contains("Recoges")) AudioSfx.Play("recoger", -10f);
-        else if (text.Contains("Fabricado")) AudioSfx.Play("triturador", -8f);
-        else if (text.Contains("Colocas") || text.Contains("construyes")) AudioSfx.Play("colocar", -4f);
-        else if (text.Contains("Reparado")) AudioSfx.Play("martillo", -8f);
-        else if (text.Contains("Descansas")) AudioSfx.Play("descanso", -8f);
+        if (text.Contains("Recoges") || text.Contains("Pick up")) AudioSfx.Play("recoger", -10f);
+        else if (text.Contains("Fabricado") || text.Contains("Crafted")) AudioSfx.Play("triturador", -8f);
+        else if (text.Contains("Colocas") || text.Contains("construyes") || text.Contains("Place") || text.Contains("build"))
+            AudioSfx.Play("colocar", -4f);
+        else if (text.Contains("Reparado") || text.Contains("Repaired")) AudioSfx.Play("martillo", -8f);
+        else if (text.Contains("Descansas") || text.Contains("You rest")) AudioSfx.Play("descanso", -8f);
     }
 
     private static void OnGameEnded(bool win) =>

@@ -80,7 +80,7 @@ public partial class GameFrame : Control
         var text = UiTheme.Label(string.Empty, 14, Palette.Muted);
         text.AutowrapMode = TextServer.AutowrapMode.WordSmart;
 
-        var button = UiTheme.PrimaryButton("Volver al menú", 14);
+        var button = UiTheme.PrimaryButton(Loc.T("Volver al menú"), 14);
 
         var card = MakeCardRaw(eyebrow, title, text, null, button);
         return (card, eyebrow, title, text, button);
@@ -133,20 +133,25 @@ public partial class GameFrame : Control
         var crit = false;
         if (s.Building)
         {
-            banner = "Construcción · E colocar · Esc cancelar";
+            banner = s.PlacingItem switch
+            {
+                "beacon" => Loc.T("Construcción · baliza · E colocar · Esc cancelar"),
+                "parcela" => Loc.T("Construcción · parcela · E colocar · Esc cancelar"),
+                _ => Loc.T("Construcción · E colocar · Esc cancelar"),
+            };
         }
         else if (s.Storm.Left > 0)
         {
-            banner = "Tormenta de polvo · " + Math.Ceiling(s.Storm.Left) + " s";
+            banner = Loc.T("Tormenta de polvo · ") + Math.Ceiling(s.Storm.Left) + " s";
             crit = true;
         }
         else if (s.Running && s.Storm.Next <= 10)
         {
-            banner = "Alerta: tormenta de polvo en " + Math.Ceiling(s.Storm.Next) + " s";
+            banner = Loc.T("Alerta: tormenta de polvo en ") + Math.Ceiling(s.Storm.Next) + " s";
         }
         else if (s.InterferenceActive)
         {
-            banner = "Señal interferida · revisa la nave";
+            banner = Loc.T("Señal interferida · revisa la nave");
         }
         _banner.Visible = banner.Length > 0;
         if (banner.Length > 0)
@@ -181,13 +186,13 @@ public partial class GameFrame : Control
 
         if (!over) return;
 
-        _endEyebrow.Text = s.Win ? "Misión cumplida" : "Misión fallida";
-        _endTitle.Text = s.Win ? "¡Despegue!" : "Traje sin soporte";
+        _endEyebrow.Text = Loc.T(s.Win ? "Misión cumplida" : "Misión fallida");
+        _endTitle.Text = Loc.T(s.Win ? "¡Despegue!" : "Traje sin soporte");
         _endText.Text = s.Win
             ? WinText(s)
             : s.Vitals.O2 <= 0
-                ? "Te quedaste sin oxígeno. Recarga el traje con hielo antes de que baje del 25 %."
-                : "La falta de alimento terminó con tus fuerzas. Cultiva y come papas con regularidad.";
+                ? Loc.T("Te quedaste sin oxígeno. Recarga el traje con hielo antes de que baje del 25 %.")
+                : Loc.T("La falta de alimento terminó con tus fuerzas. Cultiva y come papas con regularidad.");
     }
 
     private string WinText(GameState s)
@@ -195,13 +200,14 @@ public partial class GameFrame : Control
         var sol = GameClock.DayNumber(s.Time, Session.Balance.SolLength);
         return s.NpcOutcome switch
         {
-            NpcOutcome.Rescued =>
-                $"Reparaste la nave en el Sol {sol} y llevaste a la superviviente a casa. No vuelves solo.",
-            NpcOutcome.LeftBehind =>
-                $"Reparaste la nave en el Sol {sol} y despegaste. La señal de la superviviente quedó en silencio, atrás.",
-            NpcOutcome.LostContact =>
-                $"Reparaste la nave en el Sol {sol}. En algún lugar del cráter, una baliza se apaga para siempre.",
-            _ => $"Reparaste la nave en el Sol {sol} y vuelves a casa. El motor de ascenso respondió a la primera.",
+            NpcOutcome.Rescued => Loc.F(
+                "Reparaste la nave en el Sol {0} y llevaste a la superviviente a casa. No vuelves solo.", sol),
+            NpcOutcome.LeftBehind => Loc.F(
+                "Reparaste la nave en el Sol {0} y despegaste. La señal de la superviviente quedó en silencio, atrás.", sol),
+            NpcOutcome.LostContact => Loc.F(
+                "Reparaste la nave en el Sol {0}. En algún lugar del cráter, una baliza se apaga para siempre.", sol),
+            _ => Loc.F(
+                "Reparaste la nave en el Sol {0} y vuelves a casa. El motor de ascenso respondió a la primera.", sol),
         };
     }
 

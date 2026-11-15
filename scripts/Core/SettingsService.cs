@@ -12,6 +12,15 @@ public static class SettingsService
 
     public static float GetVolume() => Current.MasterVolume;
 
+    public static string GetLanguage() => Current.Language == "en" ? "en" : "es";
+
+    public static void SetLanguage(string language)
+    {
+        Current.Language = language == "en" ? "en" : "es";
+        NasaValley.Domain.Loc.Language = Current.Language;
+        Save();
+    }
+
     public static int GetBinding(string action, int fallback) =>
         Current.Bindings.TryGetValue(action, out var code) && code != 0 ? code : fallback;
 

@@ -13,10 +13,10 @@ public sealed record StationTarget(Station Station) : InteractionTarget;
 /// <summary>The management console placed below each built dome.</summary>
 public sealed record DomeTerminalTarget(Dome Dome) : InteractionTarget;
 
-/// <summary>An empty interior slot of a dome where a farm or utility can be built.</summary>
+/// <summary>An empty interior slot where the fixture chosen in the terminal is placed with E.</summary>
 public sealed record DomeSlotTarget(Dome Dome, int SlotIndex) : InteractionTarget;
 
-/// <summary>A utility already placed inside a dome (solar panel, battery, bunk).</summary>
+/// <summary>A utility already placed inside a dome (solar panel, battery).</summary>
 public sealed record DomeFixtureTarget(Dome Dome, Fixture Fixture) : InteractionTarget;
 
 public sealed record ShipTarget : InteractionTarget;
@@ -71,16 +71,20 @@ public static class InteractionSystem
 
         foreach (var dome in s.Domes)
         {
-            var slotCount = DomeLayout.SlotCount(b);
-            for (var i = 0; i < slotCount; i++)
+            // Empty slots are only targeted after choosing a fixture in the terminal.
+            if (s.PendingFixture != null)
             {
-                if (dome.IsSlotOccupied(i)) continue;
-                var (sx, sy) = DomeLayout.SlotPosition(b, dome, i);
-                var d = Distance(sx + b.PlotSize / 2f, sy + b.PlotSize / 2f, s.Px, s.Py);
-                if (d < b.PlotInteractRadius && d < bestDistance)
+                var slotCount = DomeLayout.SlotCount(b);
+                for (var i = 0; i < slotCount; i++)
                 {
-                    bestDistance = d;
-                    best = new DomeSlotTarget(dome, i);
+                    if (dome.IsSlotOccupied(i)) continue;
+                    var (sx, sy) = DomeLayout.SlotPosition(b, dome, i);
+                    var d = Distance(sx + b.PlotSize / 2f, sy + b.PlotSize / 2f, s.Px, s.Py);
+                    if (d < b.PlotInteractRadius && d < bestDistance)
+                    {
+                        bestDistance = d;
+                        best = new DomeSlotTarget(dome, i);
+                    }
                 }
             }
 
@@ -167,48 +171,50 @@ public static class InteractionSystem
                 var item = ctx.Items[nodeDef.ItemId];
                 if (!ctx.HasToolTag(nodeDef.RequiredToolTag))
                 {
-                    return $"Necesitas herramienta para extraer {item.Name.ToLowerInvariant()}";
+                    return Loc.F("Necesitas herramienta para extraer {0}", Loc.T(item.Name));
                 }
-                return $"Extraer {item.Name.ToLowerInvariant()} ({nt.Node.Amount} restantes)";
+                return Loc.F("Extraer {0} ({1} restantes)", Loc.T(item.Name), nt.Node.Amount);
 
             case PickupTarget pt:
                 var pickupDef = ctx.Items[pt.Pickup.ItemId];
-                return $"Recoger {pickupDef.Name.ToLowerInvariant()} ({pt.Pickup.Amount})";
+                return Loc.F("Recoger {0} ({1})", Loc.T(pickupDef.Name), pt.Pickup.Amount);
 
             case StationTarget st:
                 return st.Station.Kind switch
                 {
-                    StationKind.Workbench => "Usar banco de trabajo",
-                    _ => "Abrir consola",
+                    StationKind.Workbench => Loc.T("Usar banco de trabajo"),
+                    _ => Loc.T("Abrir consola"),
                 };
 
             case ShipTarget:
                 var unread = NpcQuestSystem.UnreadCount(s);
-                return unread > 0 ? $"Abrir panel de la nave ({unread} nuevo)" : "Abrir panel de la nave";
+                return unread > 0
+                    ? Loc.F("Abrir panel de la nave ({0} nuevo)", unread)
+                    : Loc.T("Abrir panel de la nave");
 
             case SupplyCacheTarget:
                 var have = s.Inventory[s.CacheItemId];
-                var itemName = ctx.Items[s.CacheItemId].Name.ToLowerInvariant();
-                if (have >= s.CacheAmount) return $"Entregar {s.CacheAmount} {itemName}";
-                return $"Faltan {s.CacheAmount - have} {itemName}";
+                var itemName = Loc.T(ctx.Items[s.CacheItemId].Name);
+                if (have >= s.CacheAmount) return Loc.F("Entregar {0} {1}", s.CacheAmount, itemName);
+                return Loc.F("Faltan {0} {1}", s.CacheAmount - have, itemName);
 
             case SurvivorSiteTarget:
-                return "Auxiliar a la superviviente";
+                return Loc.T("Auxiliar a la superviviente");
 
             case DomeTerminalTarget dt:
-                return $"Terminal de la cúpula {dt.Dome.Id} (nivel {dt.Dome.Level})";
+                return Loc.F("Terminal de la cúpula {0} (nivel {1})", dt.Dome.Id, dt.Dome.Level);
 
             case DomeSlotTarget slot:
                 var kind = s.PendingFixture ?? FixtureKind.Farm;
-                return $"Colocar {BuildSystem.FixtureName(kind)} ({CostText(ctx, BuildSystem.FixtureCost(ctx.Balance, kind))})";
+                return Loc.F("Colocar {0} ({1})", Loc.T(BuildSystem.FixtureName(kind)),
+                    CostText(ctx, BuildSystem.FixtureCost(ctx.Balance, kind)));
 
             case DomeFixtureTarget ft:
                 return ft.Fixture.Kind switch
                 {
-                    FixtureKind.Bunk => "Descansar en la litera",
-                    FixtureKind.SolarPanel => "Panel solar · abrir terminal",
-                    FixtureKind.Battery => "Batería · abrir terminal",
-                    _ => "Revisar instalación",
+                    FixtureKind.SolarPanel => Loc.T(ft.Fixture.Deployed ? "Retraer panel" : "Extender panel"),
+                    FixtureKind.Battery => Loc.T("Recargar energía"),
+                    _ => Loc.T("Revisar instalación"),
                 };
 
             case PlotTarget pt:
@@ -227,22 +233,23 @@ public static class InteractionSystem
         switch (plot.State)
         {
             case PlotState.Empty:
-                return s.Inventory["semillas"] > 0
+                var selected = ctx.Plants[s.SelectedCrop];
+                return Loc.T(s.Inventory[selected.SeedId] > 0
                     ? "Plantar… (1 semilla)"
-                    : "Sin semillas para plantar";
+                    : "Sin semillas para plantar");
 
             case PlotState.Dry:
                 var need = crop?.WaterPerGrowth ?? 1;
                 return s.Inventory["agua"] >= need
-                    ? $"Regar ({need} agua)"
-                    : $"Necesitas {need} de agua";
+                    ? Loc.F("Regar ({0} agua)", need)
+                    : Loc.F("Necesitas {0} de agua", need);
 
             case PlotState.Grow:
                 var blocker = FarmingSystem.GrowthBlocker(ctx, plot);
-                return blocker.Length > 0 ? blocker : $"Creciendo… {Math.Ceiling(plot.Time)} s";
+                return blocker.Length > 0 ? Loc.T(blocker) : Loc.F("Creciendo… {0} s", Math.Ceiling(plot.Time));
 
             default:
-                return crop != null ? $"Cosechar {crop.Name.ToLowerInvariant()}" : "Cosechar";
+                return crop != null ? Loc.F("Cosechar {0}", Loc.T(crop.Name)) : Loc.T("Cosechar");
         }
     }
 
@@ -255,12 +262,12 @@ public static class InteractionSystem
 
     private static string CostText(IGameContext ctx, IReadOnlyDictionary<string, int> cost)
     {
-        if (cost.Count == 0) return "gratis";
+        if (cost.Count == 0) return Loc.T("gratis");
         var text = string.Empty;
         foreach (var (item, amount) in cost)
         {
             if (text.Length > 0) text += " · ";
-            text += $"{ctx.Items[item].Name.ToLowerInvariant()} x{amount}";
+            text += $"{Loc.T(ctx.Items[item].Name)} x{amount}";
         }
         return text;
     }

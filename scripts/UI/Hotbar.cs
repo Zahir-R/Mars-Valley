@@ -28,13 +28,13 @@ public sealed class Hotbar
             flow.AddChild(slot.Root);
         }
 
-        _eat = UiTheme.PrimaryButton("Comer papa  F");
+        _eat = UiTheme.PrimaryButton(Loc.T("Comer papa  F"));
         UiTheme.ApplyButton(_eat, Palette.Food, Palette.Ink, Color.FromHtml("#4f6e2a"), 13);
         _eat.CustomMinimumSize = new Vector2(140, 42);
         _eat.Pressed += onEat;
         flow.AddChild(_eat);
 
-        Keys = UiTheme.Label("WASD mover · E acción (mantén para extraer) · F comer · P pausa", 12, Palette.Muted);
+        Keys = UiTheme.Label(Loc.T("WASD mover · E acción (mantén para extraer) · F comer · P pausa"), 12, Palette.Muted);
 
         var box = UiTheme.VBox(10);
         box.AddChild(flow);

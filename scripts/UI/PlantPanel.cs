@@ -28,13 +28,13 @@ public sealed class PlantPanel
         _session = session;
         _onClose = onClose;
 
-        _title = UiTheme.Text("Plantar", 16, Palette.Suit, Fonts.SansWeight(700));
-        _subtitle = UiTheme.Label("Elige un cultivo para este hueco.", 12, Palette.Muted);
+        _title = UiTheme.Text(Loc.T("Plantar"), 16, Palette.Suit, Fonts.SansWeight(700));
+        _subtitle = UiTheme.Label(Loc.T("Elige un cultivo para este hueco."), 12, Palette.Muted);
 
         var body = UiTheme.VBox(10);
         body.AddChild(_title);
         body.AddChild(_subtitle);
-        body.AddChild(UiTheme.Caption("Cultivos"));
+        body.AddChild(UiTheme.Caption(Loc.T("Cultivos")));
         _rows = UiTheme.VBox(6);
         body.AddChild(_rows);
 
@@ -46,10 +46,12 @@ public sealed class PlantPanel
     public void SetPlot(Plot? plot)
     {
         _plot = plot;
-        _title.Text = plot?.Dome == null ? "Plantar en bandeja abierta" : $"Plantar en Cúpula {plot.Dome.Id}";
+        _title.Text = plot?.Dome == null
+            ? Loc.T("Plantar en bandeja abierta")
+            : Loc.F("Plantar en Cúpula {0}", plot.Dome.Id);
         _subtitle.Text = plot?.Dome == null
-            ? "El clima marciano manda; no todo sobrevive ahí fuera."
-            : "Interior estable; casi todo crece bien aquí.";
+            ? Loc.T("El clima marciano manda; no todo sobrevive ahí fuera.")
+            : Loc.T("Interior estable; casi todo crece bien aquí.");
         Refresh();
     }
 
@@ -73,9 +75,9 @@ public sealed class PlantPanel
         foreach (var (id, controls) in _rowControls)
         {
             var blocker = FarmingSystem.GrowthBlockerNow(_session, _plot, id);
-            controls.Status.Text = blocker.Length > 0 ? blocker : "Crecerá aquí";
+            controls.Status.Text = blocker.Length > 0 ? Loc.T(blocker) : Loc.T("Crecerá aquí");
             controls.Status.AddThemeColorOverride("font_color", blocker.Length > 0 ? Palette.Health : Palette.Food);
-            controls.Button.Disabled = _session.State.Inventory["semillas"] < 1;
+            controls.Button.Disabled = _session.State.Inventory[_session.Plants[id].SeedId] < 1;
         }
     }
 
@@ -87,9 +89,10 @@ public sealed class PlantPanel
 
         var icon = new ColorRect { Color = Palette.FromHex(plant.Color), CustomMinimumSize = new Vector2(34, 34) };
 
-        var name = UiTheme.Text(plant.Name, 13, Palette.Suit, Fonts.SansWeight(600));
+        var name = UiTheme.Text(Loc.T(plant.Name), 13, Palette.Suit, Fonts.SansWeight(600));
         var detail = UiTheme.Label(
-            $"{plant.GrowTime:0} s · {plant.WaterPerGrowth} agua · cosecha {plant.HarvestYield}",
+            Loc.F("{0} s · {1} agua · cosecha {2}",
+                Mathf.RoundToInt((float)plant.GrowTime), plant.WaterPerGrowth, plant.HarvestYield),
             11, Palette.Muted);
         var status = UiTheme.Label(string.Empty, 11, Palette.Food);
         status.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
@@ -100,7 +103,7 @@ public sealed class PlantPanel
         texts.AddChild(status);
         texts.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
 
-        var button = UiTheme.PrimaryButton("Plantar", 12);
+        var button = UiTheme.PrimaryButton(Loc.T("Plantar"), 12);
         button.CustomMinimumSize = new Vector2(120, 38);
         button.Pressed += () => Plant(plant.Id);
 

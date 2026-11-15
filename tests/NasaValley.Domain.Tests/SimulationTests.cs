@@ -98,8 +98,9 @@ public class SimulationTests
         session.Repair("casco");
         Assert.False(RepairSystem.IsRepaired(session.State, "casco"));
 
-        session.State.Inventory["hierro"] = 5;
-        session.State.Inventory["silicio"] = 2;
+        session.State.Inventory["hierro"] = 6;
+        session.State.Inventory["silicio"] = 3;
+        session.State.Inventory["regolito"] = 4;
         session.Repair("casco");
 
         Assert.True(RepairSystem.IsRepaired(session.State, "casco"));
@@ -124,7 +125,8 @@ public class SimulationTests
         session.Repair("motor");
 
         Assert.True(RepairSystem.IsRepaired(session.State, "motor"));
-        Assert.True(session.State.WinTimer > 0);
+        Assert.Equal(session.Parts.Parts.Count, RepairSystem.Count(session.State));
+        Assert.Equal(0, session.State.WinTimer);
     }
 
     [Fact]
@@ -137,6 +139,8 @@ public class SimulationTests
 
         foreach (var part in session.Parts.Parts) session.Repair(part.Id);
 
+        Assert.True(session.CanLaunch);
+        Assert.True(session.Launch());
         session.Tick(PlayerIntent.None, session.Balance.WinDelay + 0.1);
 
         Assert.Equal(FlowState.Won, session.State.Flow);

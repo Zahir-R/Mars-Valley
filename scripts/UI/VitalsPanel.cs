@@ -18,13 +18,13 @@ public sealed class VitalsPanel
 
     public VitalsPanel()
     {
-        _suitState = UiTheme.Text("SELLADO", 10, Palette.O2, Fonts.MonoWeight(600));
+        _suitState = UiTheme.Text(Loc.T("SELLADO"), 10, Palette.O2, Fonts.MonoWeight(600));
         _suitBadge = new PanelContainer();
         _suitBadge.AddThemeStyleboxOverride("panel", Badge(Palette.O2));
         _suitBadge.AddChild(_suitState);
 
         var header = UiTheme.HBox(8);
-        var headerLabel = UiTheme.Caption("Traje EVA");
+        var headerLabel = UiTheme.Caption(Loc.T("Traje EVA"));
         headerLabel.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         header.AddChild(headerLabel);
         header.AddChild(_suitBadge);
@@ -32,10 +32,10 @@ public sealed class VitalsPanel
         _grid = new GridContainer { Columns = 1 };
         _grid.AddThemeConstantOverride("h_separation", 14);
         _grid.AddThemeConstantOverride("v_separation", 12);
-        AddVital("o2", "Oxígeno", Palette.O2);
-        AddVital("en", "Energía", Palette.Energy);
-        AddVital("food", "Alimento", Palette.Food);
-        AddVital("hp", "Salud", Palette.Health);
+        AddVital("o2", Loc.T("Oxígeno"), Palette.O2);
+        AddVital("en", Loc.T("Energía"), Palette.Energy);
+        AddVital("food", Loc.T("Alimento"), Palette.Food);
+        AddVital("hp", Loc.T("Salud"), Palette.Health);
 
         var body = UiTheme.VBox(12);
         body.AddChild(header);
@@ -95,10 +95,10 @@ public sealed class VitalsPanel
 
         string text;
         Color color;
-        if (v.O2 < 20) { text = "O₂ CRÍTICO"; color = Palette.Health; }
-        else if (s.Storm.Left > 0) { text = "TORMENTA"; color = Palette.Energy; }
-        else if (v.O2 < 40 || v.Food < 25) { text = "ATENCIÓN"; color = Palette.Energy; }
-        else { text = "SELLADO"; color = Palette.O2; }
+        if (v.O2 < 20) { text = Loc.T("O₂ CRÍTICO"); color = Palette.Health; }
+        else if (s.Storm.Left > 0) { text = Loc.T("TORMENTA"); color = Palette.Energy; }
+        else if (v.O2 < 40 || v.Food < 25) { text = Loc.T("ATENCIÓN"); color = Palette.Energy; }
+        else { text = Loc.T("SELLADO"); color = Palette.O2; }
 
         _suitState.Text = text;
         _suitState.AddThemeColorOverride("font_color", color);

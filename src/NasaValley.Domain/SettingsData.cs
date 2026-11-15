@@ -6,6 +6,7 @@ public sealed class AppSettingsData
 {
     public int Version { get; set; } = SettingsSerializer.CurrentVersion;
     public float MasterVolume { get; set; } = 0.8f;
+    public string Language { get; set; } = "es";
     public Dictionary<string, int> Bindings { get; set; } = new();
 }
 

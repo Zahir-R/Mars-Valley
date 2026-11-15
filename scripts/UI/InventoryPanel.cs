@@ -50,7 +50,7 @@ public sealed class InventoryPanel
         tabBar.AddThemeConstantOverride("v_separation", 4);
         foreach (var (id, label) in Categories)
         {
-            var button = UiTheme.GhostButton(label, 12);
+            var button = UiTheme.GhostButton(Loc.T(label), 12);
             button.Pressed += () => ShowCategory(id);
             _tabs[id] = button;
             tabBar.AddChild(button);
@@ -65,9 +65,9 @@ public sealed class InventoryPanel
         };
         scroll.AddChild(_list);
 
-        _descName = UiTheme.Text("Selecciona un objeto", 15, Palette.Suit, Fonts.SansWeight(700));
+        _descName = UiTheme.Text(Loc.T("Selecciona un objeto"), 15, Palette.Suit, Fonts.SansWeight(700));
         _descMeta = UiTheme.Label(string.Empty, 11, Palette.Muted);
-        _descText = UiTheme.Label("Elige una categoría y pulsa un objeto para ver su descripción.", 12, Palette.Muted);
+        _descText = UiTheme.Label(Loc.T("Elige una categoría y pulsa un objeto para ver su descripción."), 12, Palette.Muted);
         _descText.AutowrapMode = TextServer.AutowrapMode.WordSmart;
 
         var descBox = UiTheme.VBox(4);
@@ -110,7 +110,7 @@ public sealed class InventoryPanel
             var def = _session.Items[id];
             var count = _session.State.Inventory[id];
             var selected = id == _selected;
-            row.Text = (selected ? "▶  " : string.Empty) + def.Name + "      x" + count;
+            row.Text = (selected ? "▶  " : string.Empty) + Loc.T(def.Name) + "      x" + count;
             row.Modulate = selected ? Colors.White : new Color(1, 1, 1, 0.82f);
             row.AddThemeColorOverride("font_color", count > 0 ? Palette.Suit : Palette.Muted);
         }
@@ -175,9 +175,9 @@ public sealed class InventoryPanel
     {
         if (_selected == null || !_session.Items.TryGet(_selected, out var def))
         {
-            _descName.Text = "Selecciona un objeto";
+            _descName.Text = Loc.T("Selecciona un objeto");
             _descMeta.Text = string.Empty;
-            _descText.Text = "Elige una categoría y pulsa un objeto para ver su descripción.";
+            _descText.Text = Loc.T("Elige una categoría y pulsa un objeto para ver su descripción.");
             if (_actionsFor != null)
             {
                 foreach (var child in _actions.GetChildren()) child.QueueFree();
@@ -186,9 +186,9 @@ public sealed class InventoryPanel
             return;
         }
 
-        _descName.Text = def.Name;
-        _descMeta.Text = $"{CategoryLabel(GroupOf(def))} · x{_session.State.Inventory[def.Id]}";
-        _descText.Text = def.Description;
+        _descName.Text = Loc.T(def.Name);
+        _descMeta.Text = $"{Loc.T(CategoryLabel(GroupOf(def)))} · x{_session.State.Inventory[def.Id]}";
+        _descText.Text = Loc.T(def.Description);
 
         if (_actionsFor == ActionKey(def)) return;
         _actionsFor = ActionKey(def);
@@ -197,23 +197,23 @@ public sealed class InventoryPanel
 
         if (def.HasTag("Comida"))
         {
-            var use = UiTheme.PrimaryButton("Utilizar", 13);
+            var use = UiTheme.PrimaryButton(Loc.T("Utilizar"), 13);
             use.Pressed += () => { _session.Eat(def.Id); Refresh(); };
             _actions.AddChild(use);
 
-            var source = UiTheme.GhostButton("Definir fuente de comida", 12);
+            var source = UiTheme.GhostButton(Loc.T("Definir fuente de comida"), 12);
             source.Pressed += () => { _session.SetFoodSource(def.Id); Refresh(); };
             _actions.AddChild(source);
         }
         else if (def.HasTag("Colocable") && _session.State.Inventory[def.Id] > 0)
         {
-            var place = UiTheme.PrimaryButton("Colocar", 13);
+            var place = UiTheme.PrimaryButton(Loc.T("Colocar"), 13);
             place.Pressed += () => _onPlace?.Invoke(def.Id);
             _actions.AddChild(place);
         }
         else if (def.Category == ItemCategory.Tool)
         {
-            var use = UiTheme.GhostButton("Usar", 12);
+            var use = UiTheme.GhostButton(Loc.T("Usar"), 12);
             use.Pressed += () => _session.Say("Usar herramientas llegará pronto.", MessageKind.Warn);
             _actions.AddChild(use);
         }

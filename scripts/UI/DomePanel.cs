@@ -29,7 +29,9 @@ public sealed class DomePanel
     private readonly Button _farm;
     private readonly Button _solar;
     private readonly Button _battery;
-    private readonly Button _bunk;
+    private readonly VBoxContainer _batteryList = UiTheme.VBox(4);
+    private readonly System.Collections.Generic.List<(MiniBar Bar, Label Label)> _batteryBars = new();
+    private int _batteryBuilt = -1;
     private int _confirmDomeId = -1;
 
     public DomePanel(GameSession session, Action? onClose)
@@ -37,7 +39,7 @@ public sealed class DomePanel
         _session = session;
         _onClose = onClose;
 
-        _title = UiTheme.Text("Cúpula", 16, Palette.Suit, Fonts.SansWeight(700));
+        _title = UiTheme.Text(Loc.T("Cúpula"), 16, Palette.Suit, Fonts.SansWeight(700));
         _stats = UiTheme.Label(string.Empty, 12, Palette.Muted);
         _stats.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         _detail = UiTheme.Label(string.Empty, 12, Palette.Muted);
@@ -46,27 +48,26 @@ public sealed class DomePanel
         _interior.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         _cost = UiTheme.Label(string.Empty, 12, Palette.Muted);
 
-        _upgrade = UiTheme.PrimaryButton("Actualizar", 13);
+        _upgrade = UiTheme.PrimaryButton(Loc.T("Actualizar"), 13);
         _upgrade.Pressed += Upgrade;
 
-        _newDome = UiTheme.GhostButton("Construir cúpula", 12);
-        _newDome.TooltipText = "Coloca otra cúpula; no requiere semillas ni cultivos.";
+        _newDome = UiTheme.GhostButton(Loc.T("Construir cúpula"), 12);
+        _newDome.TooltipText = Loc.T("Coloca otra cúpula; no requiere semillas ni cultivos.");
         _newDome.Pressed += BuildAnother;
 
-        _move = UiTheme.GhostButton("Mover", 12);
+        _move = UiTheme.GhostButton(Loc.T("Mover"), 12);
         _move.Pressed += Move;
 
-        _store = UiTheme.GhostButton("Guardar", 12);
-        _store.TooltipText = "Se guarda en el inventario; lo que haya dentro se pierde.";
+        _store = UiTheme.GhostButton(Loc.T("Guardar"), 12);
+        _store.TooltipText = Loc.T("Se guarda en el inventario; lo que haya dentro se pierde.");
         _store.Pressed += Store;
 
-        _destroy = UiTheme.GhostButton("Destruir", 12);
+        _destroy = UiTheme.GhostButton(Loc.T("Destruir"), 12);
         _destroy.Pressed += Destroy;
 
-        _farm = FixtureButton("Parcela", FixtureKind.Farm);
-        _solar = FixtureButton("Panel solar", FixtureKind.SolarPanel);
-        _battery = FixtureButton("Batería", FixtureKind.Battery);
-        _bunk = FixtureButton("Litera", FixtureKind.Bunk);
+        _farm = FixtureButton(Loc.T("Parcela"), FixtureKind.Farm);
+        _solar = FixtureButton(Loc.T("Panel solar"), FixtureKind.SolarPanel);
+        _battery = FixtureButton(Loc.T("Batería"), FixtureKind.Battery);
 
         var management = new HFlowContainer();
         management.AddThemeConstantOverride("h_separation", 6);
@@ -83,23 +84,24 @@ public sealed class DomePanel
         fixtures.AddChild(_farm);
         fixtures.AddChild(_solar);
         fixtures.AddChild(_battery);
-        fixtures.AddChild(_bunk);
 
         var hint = UiTheme.Label(
-            "Elige una instalación y colócala en un hueco libre de la cúpula con E. La litera recupera energía al interactuar con ella.",
+            Loc.T("Elige una instalación y colócala en un hueco libre con E. La batería recarga tu traje; los paneles se pueden retraer para protegerlos de las tormentas."),
             11, Palette.Muted);
         hint.AutowrapMode = TextServer.AutowrapMode.WordSmart;
 
         var body = UiTheme.VBox(8);
-        body.AddChild(UiTheme.Caption("Terminal de cúpula"));
+        body.AddChild(UiTheme.Caption(Loc.T("Terminal de cúpula")));
         body.AddChild(_title);
         body.AddChild(_stats);
         body.AddChild(_detail);
         body.AddChild(_interior);
+        body.AddChild(UiTheme.Label(Loc.T("Baterías"), 12, Palette.Muted));
+        body.AddChild(_batteryList);
         body.AddChild(_cost);
-        body.AddChild(UiTheme.Label("Construir en el interior", 12, Palette.Muted));
+        body.AddChild(UiTheme.Label(Loc.T("Construir en el interior"), 12, Palette.Muted));
         body.AddChild(fixtures);
-        body.AddChild(UiTheme.Label("Gestión", 12, Palette.Muted));
+        body.AddChild(UiTheme.Label(Loc.T("Gestión"), 12, Palette.Muted));
         body.AddChild(management);
         body.AddChild(hint);
 
@@ -127,8 +129,8 @@ public sealed class DomePanel
         var dome = _session.ActiveDome;
         if (dome == null)
         {
-            _title.Text = "Sin cúpula seleccionada";
-            _stats.Text = "Acércate al terminal de una cúpula y pulsa E.";
+            _title.Text = Loc.T("Sin cúpula seleccionada");
+            _stats.Text = Loc.T("Acércate al terminal de una cúpula y pulsa E.");
             _detail.Text = string.Empty;
             _interior.Text = string.Empty;
             _cost.Text = string.Empty;
@@ -142,27 +144,29 @@ public sealed class DomePanel
         var biome = GeneratedBiomes.AtWorld(dome.CenterX, dome.CenterY);
         var light = EnvironmentSystem.Light(_session.State, b);
         var lightPct = Mathf.RoundToInt((float)light * 100);
-        var generation = (b.DomePassiveSolar + dome.PanelCount * b.SolarPanelOutput) * light * biome.SolarFactor;
+        var generation = dome.DeployedPanelCount * b.SolarPanelOutput * light * biome.SolarFactor;
         var slots = DomeLayout.SlotCount(b);
         var free = slots - dome.Plots.Count - dome.Fixtures.Count;
 
-        _title.Text = $"Cúpula {dome.Id} · nivel {dome.Level} · {biome.Name}";
-        _stats.Text = $"Interior {dome.InternalTempC:0}°C · Exterior {dome.ExternalTempC:0}°C · Luz {lightPct}%";
-        _detail.Text =
-            $"Energía {dome.Energy:0}/{dome.EnergyCapacity(b):0} · Generación +{generation:0.0}/s · Huecos libres {free}";
-        _interior.Text =
-            $"Parcelas {dome.Plots.Count} · Paneles {dome.PanelCount} · Baterías {dome.BatteryCount} · Literas {dome.BunkCount}";
+        _title.Text = Loc.F("Cúpula {0} · nivel {1} · {2}", dome.Id, dome.Level, biome.Name);
+        _stats.Text = Loc.F("Interior {0}°C · Exterior {1}°C · Luz {2}%",
+            Mathf.RoundToInt((float)dome.InternalTempC), Mathf.RoundToInt((float)dome.ExternalTempC), lightPct);
+        _detail.Text = Loc.F("Energía {0}/{1} · Generación +{2}/s · Huecos libres {3}",
+            Mathf.RoundToInt((float)dome.Energy), Mathf.RoundToInt((float)dome.EnergyCapacity(b)), generation, free);
+        _interior.Text = Loc.F("Parcelas {0} · Paneles {1} ({2} desplegados) · Baterías {3}",
+            dome.Plots.Count, dome.PanelCount, dome.DeployedPanelCount, dome.BatteryCount);
+        RefreshBatteries(dome);
 
         SetEnabled(true);
 
         if (dome.Level >= b.DomeMaxLevel)
         {
-            _cost.Text = "Nivel máximo alcanzado.";
+            _cost.Text = Loc.T("Nivel máximo alcanzado.");
             _upgrade.Disabled = true;
         }
         else
         {
-            _cost.Text = "Mejora: " + FormatCost(_session.UpgradeCostFor(dome));
+            _cost.Text = Loc.T("Mejora: ") + FormatCost(_session.UpgradeCostFor(dome));
             _upgrade.Disabled = !_session.CanUpgradeDome(dome, out _);
         }
 
@@ -170,8 +174,7 @@ public sealed class DomePanel
         _farm.Disabled = !canPlace;
         _solar.Disabled = !canPlace;
         _battery.Disabled = !canPlace;
-        _bunk.Disabled = !canPlace;
-        _destroy.Text = _confirmDomeId == dome.Id ? "Confirmar destrucción" : "Destruir";
+        _destroy.Text = _confirmDomeId == dome.Id ? Loc.T("Confirmar destrucción") : Loc.T("Destruir");
     }
 
     private void SetEnabled(bool enabled)
@@ -184,7 +187,53 @@ public sealed class DomePanel
         _farm.Disabled = !enabled;
         _solar.Disabled = !enabled;
         _battery.Disabled = !enabled;
-        _bunk.Disabled = !enabled;
+    }
+
+    private void RefreshBatteries(Dome dome)
+    {
+        var count = 0;
+        foreach (var fixture in dome.Fixtures)
+        {
+            if (fixture.Kind == FixtureKind.Battery) count++;
+        }
+
+        if (count != _batteryBuilt)
+        {
+            foreach (var child in _batteryList.GetChildren())
+            {
+                _batteryList.RemoveChild(child);
+                child.QueueFree();
+            }
+            _batteryBars.Clear();
+
+            for (var i = 0; i < count; i++)
+            {
+                var label = UiTheme.Label(Loc.F("Batería {0}", i + 1), 11, Palette.Muted);
+                var bar = new MiniBar { CustomMinimumSize = new Vector2(140, 10), FillColor = Palette.Energy };
+                bar.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+                var value = UiTheme.Text("0/40", 11, Palette.Suit, Fonts.Mono);
+                var row = UiTheme.HBox(6);
+                row.AddChild(label);
+                row.AddChild(bar);
+                row.AddChild(value);
+                _batteryList.AddChild(row);
+                _batteryBars.Add((bar, value));
+            }
+            _batteryBuilt = count;
+        }
+
+        var index = 0;
+        foreach (var fixture in dome.Fixtures)
+        {
+            if (fixture.Kind != FixtureKind.Battery) continue;
+            if (index >= _batteryBars.Count) break;
+            var pct = Mathf.Clamp((float)(fixture.Stored / _session.Balance.BatteryStorage) * 100f, 0, 100);
+            var (bar, value) = _batteryBars[index];
+            bar.Value = pct;
+            bar.QueueRedraw();
+            value.Text = $"{fixture.Stored:0}/{_session.Balance.BatteryStorage:0}";
+            index++;
+        }
     }
 
     private void SelectFixture(FixtureKind kind)
@@ -252,13 +301,13 @@ public sealed class DomePanel
 
     private string FormatCost(System.Collections.Generic.IReadOnlyDictionary<string, int> cost)
     {
-        if (cost.Count == 0) return "gratis";
+        if (cost.Count == 0) return Loc.T("gratis");
 
         var builder = new StringBuilder();
         foreach (var (item, amount) in cost)
         {
             if (builder.Length > 0) builder.Append(" · ");
-            builder.Append(_session.Items[item].Name).Append(" x").Append(amount);
+            builder.Append(Loc.T(_session.Items[item].Name)).Append(" x").Append(amount);
         }
         return builder.ToString();
     }

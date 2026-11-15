@@ -109,7 +109,7 @@ public static class WorldDraw
 
         if (n.Amount <= 0)
         {
-            SpriteArt.DrawSprite(c, sprite, new Vector2(0, 0), 30, new Color(1, 1, 1, 0.32f));
+            // Depleted veins cannot be interacted with, so their art stays hidden.
             c.DrawSetTransform(Vector2.Zero, 0, Vector2.One);
             return;
         }
@@ -166,8 +166,6 @@ public static class WorldDraw
 
         Fill(c, x - 1, y - 28, 2, 22, Color.FromHtml("#8c8678"));
         c.DrawCircle(new Vector2(x, y - 29), 3.5f, pulse > 0.5f ? Palette.Energy : Color.FromHtml("#6b645a"));
-
-        DrawText(c, "SUMINISTROS", x, y + 24, new Color(1, 1, 1, 0.6f), 8);
     }
 
     /// <summary>The stranded survivor's wreck site with a distress beacon.</summary>
@@ -187,8 +185,6 @@ public static class WorldDraw
         Stroke(c, x - 10, y - 10, 14, 8, Color.FromHtml("#5d564b"));
         Fill(c, x + 8, y - 16, 3, 12, Color.FromHtml("#8c8678"));
         c.DrawCircle(new Vector2(x + 9, y - 18), 3f, pulse > 0.45f ? Palette.Health : Color.FromHtml("#6b645a"));
-
-        DrawText(c, "S.O.S.", x, y + 24, new Color(1, 0.6f, 0.5f, 0.75f), 8);
     }
 
     /// <summary>A loose item resting on the ground, gently bobbing with a soft glow.</summary>
@@ -439,11 +435,12 @@ public static class WorldDraw
         Fill(c, cx - 1, cy - 4, 2, 8, edge);
     }
 
-    /// <summary>A utility placed on a dome slot (solar panel, battery or bunk).</summary>
+    /// <summary>A utility placed on a dome slot (solar panel or battery).</summary>
     public static void DrawFixture(CanvasItem c, Fixture fixture, float x, float y, BalanceConfig b, double clock, bool dimmed = false)
     {
         var dim = dimmed ? 0.5f : 1f;
-        var mod = new Color(1, 1, 1, dim);
+        var hurt = (float)Mathf.Clamp(fixture.Damage / b.StructureMaxDamage, 0, 1);
+        var mod = new Color(1f, 1f - hurt * 0.5f, 1f - hurt * 0.5f, dim);
         var s = b.PlotSize;
         Fill(c, x, y, s, s, new Color(36 / 255f, 24 / 255f, 18 / 255f, dim));
         Stroke(c, x, y, s, s, new Color(74 / 255f, 49 / 255f, 36 / 255f, dim), 1);
@@ -451,18 +448,23 @@ public static class WorldDraw
         switch (fixture.Kind)
         {
             case FixtureKind.SolarPanel:
-                SpriteArt.DrawSprite(c, SpriteArt.Get("sistema_energia_panel_bateria_064.png"),
-                    new Vector2(x + s / 2f, y + s / 2f), s - 6, mod);
+                if (fixture.Deployed)
+                {
+                    SpriteArt.DrawSprite(c, SpriteArt.Get("sistema_energia_panel_bateria_064.png"),
+                        new Vector2(x + s / 2f, y + s / 2f), s - 6, mod);
+                }
+                else
+                {
+                    // Retracted: a flat, dark panel with a single seam.
+                    Fill(c, x + 5, y + s / 2f - 2, s - 10, 4, new Color(0.30f, 0.33f, 0.38f, dim));
+                    Fill(c, x + 5, y + s / 2f - 1, s - 10, 1, new Color(0.55f, 0.6f, 0.66f, dim));
+                }
                 break;
 
             case FixtureKind.Battery:
                 SpriteArt.DrawSprite(c, SpriteArt.Get("sistema_energia_panel_bateria_071.png"),
                     new Vector2(x + s / 2f, y + s / 2f + 1), s - 8, mod);
-                break;
-
-            case FixtureKind.Bunk:
-                SpriteArt.DrawSprite(c, SpriteArt.Get("sistema_soporte_vital_079.png"),
-                    new Vector2(x + s / 2f, y + s / 2f), s - 8, mod);
+                DrawBatteryBar(c, fixture, x, y, s, b, dim);
                 break;
 
             default:
@@ -470,6 +472,62 @@ public static class WorldDraw
                     new Vector2(x + s / 2f, y + s / 2f), s - 10, mod);
                 break;
         }
+
+        if (hurt > 0.05f)
+        {
+            Stroke(c, x + 1, y + 1, s - 2, s - 2, new Color(0.95f, 0.3f, 0.25f, 0.35f + 0.5f * hurt), 1);
+        }
+    }
+
+    private static void DrawBatteryBar(CanvasItem c, Fixture fixture, float x, float y, float s, BalanceConfig b, float dim)
+    {
+        var pct = Mathf.Clamp((float)(fixture.Stored / b.BatteryStorage), 0f, 1f);
+        var bx = x + 4;
+        var by = y + s + 1;
+        var bw = s - 8;
+        const float bh = 4;
+        Fill(c, bx, by, bw, bh, new Color(0.06f, 0.04f, 0.03f, 0.85f * dim));
+        if (pct > 0)
+        {
+            var col = Palette.Energy;
+            col.A = dim;
+            Fill(c, bx, by, bw * pct, bh, col);
+        }
+    }
+
+    /// <summary>An outdoor beacon that lights and heats nearby plots when powered.</summary>
+    public static void DrawBeacon(CanvasItem c, Beacon beacon, BalanceConfig b, double clock)
+    {
+        var x = Mathf.Round(beacon.X);
+        var y = Mathf.Round(beacon.Y);
+        var pulse = 0.5f + 0.5f * Mathf.Sin((float)clock * 3f);
+
+        var lightColor = beacon.Powered ? new Color(1f, 0.85f, 0.45f, 0.18f) : new Color(0.4f, 0.4f, 0.4f, 0.10f);
+        c.DrawCircle(new Vector2(x, y - 14), b.BeaconRadius * 0.35f, new Color(lightColor.R, lightColor.G, lightColor.B, lightColor.A * pulse));
+
+        Fill(c, x - 10, y + 6, 20, 4, new Color(0, 0, 0, 0.28f));
+        Fill(c, x - 6, y - 6, 12, 14, Color.FromHtml("#3b3631"));
+        Stroke(c, x - 6, y - 6, 12, 14, Color.FromHtml("#8c8678"));
+        Fill(c, x - 1, y - 26, 2, 20, Color.FromHtml("#8c8678"));
+        var bulb = beacon.Powered
+            ? (pulse > 0.4f ? new Color(1f, 0.88f, 0.5f) : new Color(1f, 0.7f, 0.3f))
+            : new Color(0.35f, 0.35f, 0.35f);
+        c.DrawCircle(new Vector2(x, y - 28), 4f, bulb);
+
+        var hurt = (float)Mathf.Clamp(beacon.Damage / b.StructureMaxDamage, 0, 1);
+        if (hurt > 0.05f)
+        {
+            Stroke(c, x - 7, y - 7, 14, 16, new Color(0.95f, 0.3f, 0.25f, 0.4f + 0.5f * hurt), 1);
+        }
+    }
+
+    /// <summary>Placement ghost for an outdoor beacon; green when valid.</summary>
+    public static void DrawBeaconGhost(CanvasItem c, float x, float y, BalanceConfig b, bool valid)
+    {
+        var color = valid ? new Color(0.55f, 0.9f, 0.6f, 0.22f) : new Color(0.95f, 0.35f, 0.3f, 0.22f);
+        var edge = valid ? new Color(0.55f, 0.95f, 0.65f, 0.9f) : new Color(1f, 0.4f, 0.35f, 0.9f);
+        Fill(c, x, y, b.PlotSize, b.PlotSize, color);
+        Stroke(c, x, y, b.PlotSize, b.PlotSize, edge, 2);
     }
 
     /// <summary>Placement ghost shown while building; green when valid, red otherwise.</summary>

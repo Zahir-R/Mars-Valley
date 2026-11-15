@@ -49,16 +49,16 @@ public sealed class MailPanel
 
         if (s.NpcLetters.Count == 0)
         {
-            _body.AddChild(UiTheme.Label("Sin mensajes.", 12, Palette.Muted));
+            _body.AddChild(UiTheme.Label(Loc.T("Sin mensajes."), 12, Palette.Muted));
             return;
         }
 
-        _body.AddChild(UiTheme.Caption("Correo de la nave"));
+        _body.AddChild(UiTheme.Caption(Loc.T("Correo de la nave")));
 
         var unread = NpcQuestSystem.UnreadCount(s);
         if (unread > 0)
         {
-            var badge = UiTheme.Label($"{unread} mensaje(s) sin leer", 11, Palette.Energy);
+            var badge = UiTheme.Label(Loc.F("{0} mensaje(s) sin leer", unread), 11, Palette.Energy);
             _body.AddChild(badge);
         }
 
@@ -70,7 +70,7 @@ public sealed class MailPanel
             if (letter == null) continue;
 
             var prefix = s.NpcUnread.Contains(id) ? "● " : string.Empty;
-            var button = UiTheme.GhostButton($"{prefix}{letter.Subject} · {letter.Sender}", 12);
+            var button = UiTheme.GhostButton($"{prefix}{NpcQuestSystem.SubjectFor(letter)} · {letter.Sender}", 12);
             button.Alignment = HorizontalAlignment.Left;
             var captured = id;
             button.Pressed += () =>
@@ -92,7 +92,7 @@ public sealed class MailPanel
         var active = NpcQuestDatabase.Get(activeId);
         if (active == null) return;
 
-        var subject = UiTheme.Text(active.Subject, 14, Palette.Suit, Fonts.SansWeight(700));
+        var subject = UiTheme.Text(NpcQuestSystem.SubjectFor(active), 14, Palette.Suit, Fonts.SansWeight(700));
         var from = UiTheme.Label(active.Sender, 11, Palette.Muted);
         var body = UiTheme.Label(NpcQuestSystem.BodyFor(active, s), 12, Palette.Suit);
         body.AutowrapMode = TextServer.AutowrapMode.WordSmart;
@@ -117,13 +117,13 @@ public sealed class MailPanel
         var noisy = UiTheme.Text("▒░▒  ▓█▒░  █▒ ░▓  ▒░▒█", 14, Palette.Energy, Fonts.MonoWeight(700));
         noisy.HorizontalAlignment = HorizontalAlignment.Center;
 
-        var title = UiTheme.Text("SEÑAL INTERFERIDA", 14, Palette.Health, Fonts.MonoWeight(700));
+        var title = UiTheme.Text(Loc.T("SEÑAL INTERFERIDA"), 14, Palette.Health, Fonts.MonoWeight(700));
         title.HorizontalAlignment = HorizontalAlignment.Center;
 
-        var hint = UiTheme.Label("Hay una transmisión atrapada en la radio de la nave.", 11, Palette.Muted);
+        var hint = UiTheme.Label(Loc.T("Hay una transmisión atrapada en la radio de la nave."), 11, Palette.Muted);
         hint.AutowrapMode = TextServer.AutowrapMode.WordSmart;
 
-        var listen = UiTheme.PrimaryButton("Escuchar señal", 13);
+        var listen = UiTheme.PrimaryButton(Loc.T("Escuchar señal"), 13);
         listen.Pressed += () =>
         {
             _session.DecodeNpcInterference();
@@ -153,7 +153,7 @@ public sealed class MailPanel
                     _session.ChooseSite(true);
                     _onClose();
                 };
-                var stay = UiTheme.GhostButton("No iré", 12);
+                var stay = UiTheme.GhostButton(Loc.T("No iré"), 12);
                 stay.Pressed += () =>
                 {
                     _session.ChooseSite(false);
@@ -164,16 +164,18 @@ public sealed class MailPanel
                 break;
 
             case NpcDecision.Final:
-                var take = UiTheme.PrimaryButton("Llevarla en la nave", 12);
+                var take = UiTheme.PrimaryButton(Loc.T("Llevarla en la nave"), 12);
                 take.Pressed += () =>
                 {
                     _session.ChooseFinal(true);
+                    _session.Launch();
                     _onClose();
                 };
-                var leave = UiTheme.GhostButton("Dejarla atrás", 12);
+                var leave = UiTheme.GhostButton(Loc.T("Dejarla atrás"), 12);
                 leave.Pressed += () =>
                 {
                     _session.ChooseFinal(false);
+                    _session.Launch();
                     _onClose();
                 };
                 actions.AddChild(take);
@@ -181,7 +183,7 @@ public sealed class MailPanel
                 break;
 
             default:
-                var ack = UiTheme.GhostButton(s.PendingFinalChoice ? "Cerrar" : "Entendido", 12);
+                var ack = UiTheme.GhostButton(Loc.T(s.PendingFinalChoice ? "Cerrar" : "Entendido"), 12);
                 ack.Pressed += () =>
                 {
                     if (s.PendingFinalChoice)

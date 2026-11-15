@@ -94,15 +94,14 @@ public static class SurvivalSystem
 		var v = s.Vitals;
 		var k = s.Storm.Left > 0 ? b.StormDecayMultiplier : 1;
 
-		if (s.RestCooldown > 0) s.RestCooldown = Math.Max(0, s.RestCooldown - dt);
-
 		// Domes are pressurized safe zones: oxygen is not lost while inside one.
 		var sheltered = SafeZones.Contains(s, s.Px, s.Py);
 		if (!sheltered) v.O2 = Math.Max(0, v.O2 - b.O2Decay * k * dt);
 		v.Food = Math.Max(0, v.Food - b.FoodDecay * dt);
 		v.Energy = Math.Max(0, v.Energy - (b.EnergyDecay * k + (s.Moving ? b.EnergyMoveDecay : 0)) * dt);
 
-		if (v.O2 <= 0)
+		// Inside a dome the suit is protected: an empty tank no longer drains health.
+		if (!sheltered && v.O2 <= 0)
 			v.Health -= b.O2HealthDrain * dt;
 		else if (v.Food <= 0)
 			v.Health -= b.FoodHealthDrain * dt;
@@ -169,11 +168,23 @@ public static class DomeSystem
 			var external = EnvironmentSystem.ExternalTemp(biome, s, b);
 			dome.ExternalTempC = external;
 
-			// Panels (plus a small passive trickle) charge the dome's buffer.
-			var generation = (b.DomePassiveSolar + dome.PanelCount * b.SolarPanelOutput) * light * biome.SolarFactor;
+			// Only extended panels generate; there is no free passive charge.
+			var generation = dome.DeployedPanelCount * b.SolarPanelOutput * light * biome.SolarFactor;
 			dome.Energy = Math.Min(dome.EnergyCapacity(b), dome.Energy + generation * dt);
 
-			var needed = Math.Abs(external - b.DomeTargetTempC) * b.DomeEnergyPerDegreePerSec * dt;
+			// Batteries slowly fill their own reserve while the dome has a working panel.
+			if (generation > 0)
+			{
+				foreach (var fixture in dome.Fixtures)
+				{
+					if (fixture.Kind == FixtureKind.Battery)
+						fixture.Stored = Math.Min(b.BatteryStorage, fixture.Stored + b.BatteryChargeRate * dt);
+				}
+			}
+
+			// Every dome pays a slow life-support drain, plus the cost of holding its temperature.
+			var heating = Math.Abs(external - b.DomeTargetTempC) * b.DomeEnergyPerDegreePerSec * dt;
+			var needed = heating + b.DomeIdleDrain * dt;
 			if (dome.Energy >= needed)
 			{
 				dome.Energy -= needed;
@@ -190,11 +201,45 @@ public static class DomeSystem
 
 public static class FarmingSystem
 {
+	/// <summary>
+	/// Effective light and temperature for a plot. Domes (and parcels placed inside a
+	/// dome footprint) use the dome's interior; a powered beacon gives light + heat to
+	/// open-air plots, making them behave like a dome.
+	/// </summary>
+	public static (double Light, double Temp) Conditions(IGameContext ctx, Plot plot)
+	{
+		var s = ctx.State;
+		var b = ctx.Balance;
+		var natural = EnvironmentSystem.Light(s, b);
+		var cx = plot.X + b.PlotSize / 2f;
+		var cy = plot.Y + b.PlotSize / 2f;
+		var biome = GeneratedBiomes.AtWorld(cx, cy);
+		var external = EnvironmentSystem.ExternalTemp(biome, s, b);
+
+		foreach (var dome in s.Domes)
+		{
+			if (SafeZones.Contains(dome, cx, cy)) return (natural, dome.InternalTempC);
+		}
+
+		foreach (var beacon in s.Beacons)
+		{
+			if (!beacon.Powered) continue;
+			var dx = beacon.X - cx;
+			var dy = beacon.Y - cy;
+			if (dx * dx + dy * dy <= b.BeaconRadius * b.BeaconRadius)
+			{
+				// Dome-like conditions: enough light and a habitable temperature.
+				return (Math.Max(natural, b.BeaconLight), Math.Max(external + b.BeaconHeatC, b.DomeTargetTempC));
+			}
+		}
+
+		return (natural, external);
+	}
+
 	public static void Update(IGameContext ctx, double dt)
 	{
 		var s = ctx.State;
 		var b = ctx.Balance;
-		var light = EnvironmentSystem.Light(s, b);
 		var speed = s.DevMode ? b.DevGrowSpeedMultiplier : 1;
 
 		foreach (var plot in s.Plots)
@@ -202,8 +247,7 @@ public static class FarmingSystem
 			if (plot.State != PlotState.Grow) continue;
 			if (!ctx.Plants.TryGet(plot.PlantId, out var plant)) continue;
 
-			var temp = plot.Dome?.InternalTempC
-				?? EnvironmentSystem.ExternalTemp(GeneratedBiomes.AtWorld(plot.X + b.PlotSize / 2f, plot.Y + b.PlotSize / 2f), s, b);
+			var (light, temp) = Conditions(ctx, plot);
 			if (light < plant.MinLight) continue;
 			if (temp < plant.MinTempC || temp > plant.MaxTempC) continue;
 
@@ -223,9 +267,7 @@ public static class FarmingSystem
 		if (plot.State != PlotState.Grow) return string.Empty;
 		if (!ctx.Plants.TryGet(plot.PlantId, out var plant)) return "Cultivo desconocido";
 
-		var light = EnvironmentSystem.Light(ctx.State, ctx.Balance);
-		var temp = plot.Dome?.InternalTempC
-			?? EnvironmentSystem.ExternalTemp(GeneratedBiomes.AtWorld(plot.X + ctx.Balance.PlotSize / 2f, plot.Y + ctx.Balance.PlotSize / 2f), ctx.State, ctx.Balance);
+		var (light, temp) = Conditions(ctx, plot);
 		if (light < plant.MinLight) return "Falta luz";
 		if (temp < plant.MinTempC) return "Hace frío";
 		if (temp > plant.MaxTempC) return "Hace calor";
@@ -237,13 +279,97 @@ public static class FarmingSystem
 	{
 		if (!ctx.Plants.TryGet(plantId, out var plant)) return "Cultivo desconocido";
 
-		var light = EnvironmentSystem.Light(ctx.State, ctx.Balance);
-		var temp = plot.Dome?.InternalTempC
-			?? EnvironmentSystem.ExternalTemp(GeneratedBiomes.AtWorld(plot.X + ctx.Balance.PlotSize / 2f, plot.Y + ctx.Balance.PlotSize / 2f), ctx.State, ctx.Balance);
+		var (light, temp) = Conditions(ctx, plot);
 		if (light < plant.MinLight) return "Falta luz";
 		if (temp < plant.MinTempC) return "Hace frío";
 		if (temp > plant.MaxTempC) return "Hace calor";
 		return string.Empty;
+	}
+}
+
+/// <summary>Beacons draw power from the nearest dome; no power means no light or heat.</summary>
+public static class BeaconSystem
+{
+	public static void Update(IGameContext ctx, double dt)
+	{
+		var s = ctx.State;
+		var b = ctx.Balance;
+
+		foreach (var beacon in s.Beacons)
+		{
+			Dome? nearest = null;
+			var best = b.BeaconEnergyRange;
+			foreach (var dome in s.Domes)
+			{
+				var dx = dome.CenterX - beacon.X;
+				var dy = dome.CenterY - beacon.Y;
+				var d = MathF.Sqrt(dx * dx + dy * dy);
+				if (d <= best) { best = d; nearest = dome; }
+			}
+
+			var cost = b.BeaconEnergyDrain * dt;
+			if (nearest != null && nearest.Energy >= cost)
+			{
+				nearest.Energy -= cost;
+				beacon.Powered = true;
+			}
+			else
+			{
+				beacon.Powered = false;
+			}
+		}
+	}
+}
+
+/// <summary>Dust storms wear down exposed structures; at max damage they are destroyed.</summary>
+public static class DamageSystem
+{
+	public static void Update(IGameContext ctx, double dt)
+	{
+		var s = ctx.State;
+		var b = ctx.Balance;
+		if (s.Storm.Left <= 0) return;
+
+		foreach (var dome in s.Domes)
+		{
+			for (var i = dome.Fixtures.Count - 1; i >= 0; i--)
+			{
+				var fixture = dome.Fixtures[i];
+				if (fixture.Kind != FixtureKind.SolarPanel || !fixture.Deployed) continue;
+				fixture.Damage += b.PanelStormDamagePerSec * dt;
+				if (fixture.Damage >= b.StructureMaxDamage)
+				{
+					dome.Fixtures.RemoveAt(i);
+					ctx.Say("La tormenta destruyó un panel solar.", MessageKind.Warn);
+				}
+			}
+		}
+
+		for (var i = s.Plots.Count - 1; i >= 0; i--)
+		{
+			var plot = s.Plots[i];
+			if (plot.State == PlotState.Empty) continue;
+			if (plot.Dome != null) continue;
+			if (SafeZones.Contains(s, plot.X + b.PlotSize / 2f, plot.Y + b.PlotSize / 2f)) continue;
+
+			plot.Damage += b.FarmStormDamagePerSec * dt;
+			if (plot.Damage >= b.StructureMaxDamage)
+			{
+				s.Plots.RemoveAt(i);
+				ctx.Say("La tormenta destruyó un cultivo al descubierto.", MessageKind.Warn);
+			}
+		}
+
+		for (var i = s.Beacons.Count - 1; i >= 0; i--)
+		{
+			var beacon = s.Beacons[i];
+			beacon.Damage += b.BeaconStormDamagePerSec * dt;
+			if (beacon.Damage >= b.StructureMaxDamage)
+			{
+				s.Beacons.RemoveAt(i);
+				ctx.Say("La tormenta destruyó una baliza.", MessageKind.Warn);
+			}
+		}
 	}
 }
 

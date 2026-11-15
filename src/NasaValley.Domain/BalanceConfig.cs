@@ -29,18 +29,23 @@ public sealed class BalanceConfig
     public int DomeMaxLevel { get; init; } = 3;
     public float DomeTerminalRadius { get; init; } = 30f;
 
-    public double DomeStartEnergy { get; init; } = 40;
-    public double DomeBaseEnergy { get; init; } = 60;
-    public double BatteryStorage { get; init; } = 80;
+    public double DomeStartEnergy { get; init; } = 100;
+    public double DomeBaseEnergy { get; init; } = 100;
+    public double BatteryStorage { get; init; } = 40;
+    /// <summary>How fast a battery charges (0→40) while its dome has a deployed panel.</summary>
+    public double BatteryChargeRate { get; init; } = 0.5;
     public double DomeTargetTempC { get; init; } = 22;
-    public double DomePassiveSolar { get; init; } = 1.4;
+    /// <summary>Passive solar trickle. Disabled: domes only gain energy from built panels.</summary>
+    public double DomePassiveSolar { get; init; } = 0;
     public double SolarPanelOutput { get; init; } = 2.0;
     public double DomeEnergyPerDegreePerSec { get; init; } = 0.008;
+    /// <summary>Slow life-support drain every dome pays while it exists.</summary>
+    public double DomeIdleDrain { get; init; } = 0.35;
+    /// <summary>Dome energy spent (and suit energy gained) when refilling at a battery.</summary>
+    public double BatteryRefillCost { get; init; } = 25;
+    public double BatteryRefillGain { get; init; } = 40;
     /// <summary>How many times the ship can refill O2 to 100% per run.</summary>
     public int ShipO2ChargesMax { get; init; } = 5;
-
-    public double RestEnergyGain { get; init; } = 60;
-    public double RestCooldown { get; init; } = 15;
 
     public IReadOnlyDictionary<string, int> DomeCost { get; init; } = new Dictionary<string, int>
     {
@@ -67,11 +72,32 @@ public sealed class BalanceConfig
         ["silicio"] = 2,
     };
 
-    public IReadOnlyDictionary<string, int> BunkCost { get; init; } = new Dictionary<string, int>
+    // Outdoor structures built from the B menu.
+    public IReadOnlyDictionary<string, int> FieldCost { get; init; } = new Dictionary<string, int>
     {
-        ["roca"] = 3,
-        ["hierro"] = 2,
+        ["roca"] = 2,
+        ["regolito"] = 1,
+        ["fijaciones"] = 1,
     };
+
+    public IReadOnlyDictionary<string, int> BeaconCost { get; init; } = new Dictionary<string, int>
+    {
+        ["silicio"] = 3,
+        ["hierro"] = 2,
+        ["fijaciones"] = 1,
+    };
+
+    public float BeaconRadius { get; init; } = 182f;
+    public double BeaconLight { get; init; } = 0.7;
+    public double BeaconHeatC { get; init; } = 8;
+    public double BeaconEnergyDrain { get; init; } = 0.6;
+    public float BeaconEnergyRange { get; init; } = 420f;
+
+    // Storm damage (persistent; destroyed at StructureMaxDamage).
+    public double StructureMaxDamage { get; init; } = 100;
+    public double PanelStormDamagePerSec { get; init; } = 4;
+    public double FarmStormDamagePerSec { get; init; } = 3;
+    public double BeaconStormDamagePerSec { get; init; } = 4;
 
     /// <summary>Cost to upgrade a dome from (key-1) to key. Level is capped at DomeMaxLevel.</summary>
     public IReadOnlyDictionary<int, IReadOnlyDictionary<string, int>> DomeUpgradeCost { get; init; } =
@@ -188,8 +214,8 @@ public sealed class BalanceConfig
     // Starting state
     public int StartIce { get; init; } = 2;
     public int StartWater { get; init; } = 2;
-    public int StartSeeds { get; init; } = 4;
-    public int StartPotatoes { get; init; } = 1;
+    public int StartSeedsPerCrop { get; init; } = 5;
+    public int StartPotatoes { get; init; } = 3;
     public int StartFijaciones { get; init; } = 2;
     public int StartO2 { get; init; } = 100;
     public int StartEnergy { get; init; } = 80;

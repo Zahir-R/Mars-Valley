@@ -75,8 +75,8 @@ public class DomeManagementTests
     public void OpenTraysCanBePlantedOutsideADome()
     {
         var session = NewSession();
-        session.State.Inventory["semillas"] = 5;
-        session.State.Inventory["parcela"] = 1;
+        session.State.Inventory["semilla_papa"] = 5;
+        foreach (var (item, amount) in session.Balance.FieldCost) session.State.Inventory[item] = amount;
 
         Assert.True(BuildSystem.TryPlaceField(session, 200, 200, out var reason), reason);
         var plot = Assert.Single(session.State.Plots);
@@ -286,17 +286,16 @@ public class DomeManagementTests
 
         dome.Energy = 0;
         DomeSystem.Update(session, 1.0);
-        var passive = dome.Energy;
-        Assert.True(passive > 0);
+        Assert.Equal(0, dome.Energy, 3);
 
         foreach (var (item, amount) in session.Balance.SolarPanelCost) session.State.Inventory[item] = amount;
         Assert.True(BuildSystem.BuildFixture(session, dome, 0, FixtureKind.SolarPanel, out _));
         Assert.Equal(1, dome.PanelCount);
 
-        dome.Energy = 0;
+        dome.Energy = 10;
         DomeSystem.Update(session, 1.0);
 
-        Assert.True(dome.Energy > passive);
+        Assert.True(dome.Energy > 10);
     }
 
     [Fact]
@@ -314,26 +313,28 @@ public class DomeManagementTests
     }
 
     [Fact]
-    public void BunkRestoresEnergyWithACooldown()
+    public void BatteryRefillSpendsStoredEnergy()
     {
         var session = NewSession();
         var dome = BuildDome(session);
-        foreach (var (item, amount) in session.Balance.BunkCost) session.State.Inventory[item] = amount;
-        Assert.True(BuildSystem.BuildFixture(session, dome, 0, FixtureKind.Bunk, out _));
-        Assert.True(dome.HasBunk);
+        foreach (var (item, amount) in session.Balance.BatteryCost) session.State.Inventory[item] = amount;
+        Assert.True(BuildSystem.BuildFixture(session, dome, 0, FixtureKind.Battery, out _));
+        var battery = dome.Fixtures[^1];
 
+        battery.Stored = session.Balance.BatteryStorage;
         session.State.Vitals.Energy = 10;
-        session.Rest(dome);
+        session.RefillFromBattery(dome, battery);
 
-        Assert.Equal(10 + session.Balance.RestEnergyGain, session.State.Vitals.Energy);
-        Assert.True(session.State.RestCooldown > 0);
+        Assert.Equal(10 + session.Balance.BatteryStorage, session.State.Vitals.Energy, 3);
+        Assert.Equal(0, battery.Stored, 3);
 
-        session.Rest(dome);
-        Assert.Equal(10 + session.Balance.RestEnergyGain, session.State.Vitals.Energy);
+        var before = session.State.Vitals.Energy;
+        session.RefillFromBattery(dome, battery);
+        Assert.Equal(before, session.State.Vitals.Energy);
     }
 
     [Fact]
-    public void EmptySlotsAreInteractionTargetsForInteriorBuilding()
+    public void EmptySlotsAreNotInteractionTargets()
     {
         var session = NewSession();
         var dome = BuildDome(session, 120, 200);
@@ -343,27 +344,19 @@ public class DomeManagementTests
 
         var target = InteractionSystem.FindTarget(session.State, session.Balance);
 
-        var slot = Assert.IsType<DomeSlotTarget>(target);
-        Assert.Same(dome, slot.Dome);
-        Assert.Equal(0, slot.SlotIndex);
+        Assert.Null(target);
     }
 
     [Fact]
-    public void PendingFixtureIsBuiltOnAnEmptySlotWithInteract()
+    public void TerminalBuildsFixtureOnFirstFreeSlot()
     {
         var session = NewSession();
         var dome = BuildDome(session, 120, 200);
         foreach (var (item, amount) in session.Balance.SolarPanelCost) session.State.Inventory[item] = amount;
 
-        session.RequestFixture(FixtureKind.SolarPanel);
-        var (sx, sy) = DomeLayout.SlotPosition(session.Balance, dome, 2);
-        session.State.Px = sx + session.Balance.PlotSize / 2f;
-        session.State.Py = sy + session.Balance.PlotSize / 2f;
-
-        session.Tick(new PlayerIntent(false, false, false, false, InteractHeld: false, InteractPressed: true), 0.016);
+        session.State.ActiveDomeId = dome.Id;
+        Assert.True(session.BuildFixture(FixtureKind.SolarPanel, out var reason), reason);
 
         Assert.Equal(1, dome.PanelCount);
-        Assert.True(dome.IsSlotOccupied(2));
-        Assert.Null(session.State.PendingFixture);
     }
 }

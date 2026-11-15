@@ -68,13 +68,12 @@ public class ProceduralWorldTests
     {
         var session = NewSession();
         session.Start();
-        session.State.Inventory["parcela"] = 1;
+        foreach (var (item, amount) in session.Balance.FieldCost) session.State.Inventory[item] = amount;
 
         Assert.True(BuildSystem.TryPlaceField(session, 1500, 1100, out var reason), reason);
 
         var plot = Assert.Single(session.State.Plots);
         Assert.Null(plot.Dome);
-        Assert.Equal(0, session.State.Inventory["parcela"]);
         Assert.Same(plot, session.State.Plots[^1]);
     }
 }

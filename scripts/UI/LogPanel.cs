@@ -18,7 +18,7 @@ public sealed class LogPanel
         _list.CustomMinimumSize = new Vector2(0, 96);
 
         var body = UiTheme.VBox(12);
-        body.AddChild(UiTheme.Caption("Bitácora"));
+        body.AddChild(UiTheme.Caption(Loc.T("Bitácora")));
         body.AddChild(_list);
 
         var panel = new PanelContainer();
@@ -39,7 +39,7 @@ public sealed class LogPanel
 
         if (log.Count == 0)
         {
-            _list.AddChild(UiTheme.Label("Sin registros todavía.", 12, Palette.Muted));
+            _list.AddChild(UiTheme.Label(Loc.T("Sin registros todavía."), 12, Palette.Muted));
             return;
         }
 

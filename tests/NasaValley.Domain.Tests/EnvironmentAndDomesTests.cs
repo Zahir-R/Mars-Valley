@@ -78,16 +78,28 @@ public class EnvironmentAndDomesTests
     }
 
     [Fact]
-    public void DomeChargesEnergyInDaylight()
+    public void DomeOnlyChargesWithDeployedPanels()
     {
         var session = NewSession();
         var dome = BuildDome(session);
-        dome.Energy = 0;
 
-        Assert.True(EnvironmentSystem.Light(session.State, session.Balance) > 0);
+        // No panels: the dome slowly loses its stored energy.
+        dome.Energy = 50;
         DomeSystem.Update(session, 1.0);
+        Assert.True(dome.Energy < 50);
 
-        Assert.True(dome.Energy > 0);
+        foreach (var (item, amount) in session.Balance.SolarPanelCost) session.State.Inventory[item] = amount;
+        Assert.True(BuildSystem.BuildFixture(session, dome, 0, FixtureKind.SolarPanel, out _));
+
+        dome.Energy = 10;
+        DomeSystem.Update(session, 1.0);
+        Assert.True(dome.Energy > 10);
+
+        // Retracting the panel removes generation.
+        dome.Fixtures[0].Deployed = false;
+        dome.Energy = 10;
+        DomeSystem.Update(session, 1.0);
+        Assert.True(dome.Energy < 10);
     }
 
     [Fact]

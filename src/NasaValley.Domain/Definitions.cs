@@ -101,8 +101,16 @@ public sealed class ItemDatabase
             "Mineral de óxido de hierro para piezas resistentes.", Tags: new[] { "Mineral", "Metal" }),
         new ItemDefinition("silicio", "Silicio", "#e0d2a8", ItemCategory.NaturalResource,
             "Compuesto silicatado usado en vidrio y electrónica.", Tags: new[] { "Mineral" }),
-        new ItemDefinition("semillas", "Semillas", "#c9a45a", ItemCategory.Seed,
+        new ItemDefinition("semilla_lechuga", "Semillas de lechuga", "#7bd06a", ItemCategory.Seed,
+            "Semillas de lechuga para el invernadero.", Tags: new[] { "Cultivo" }),
+        new ItemDefinition("semilla_rabano", "Semillas de rábano", "#d6537a", ItemCategory.Seed,
+            "Semillas de rábano de ciclo corto.", Tags: new[] { "Cultivo" }),
+        new ItemDefinition("semilla_papa", "Semillas de papa", "#d9a05b", ItemCategory.Seed,
             "Semillas de papa para el invernadero.", Tags: new[] { "Cultivo" }),
+        new ItemDefinition("semilla_tomate", "Semillas de tomate", "#e0563d", ItemCategory.Seed,
+            "Semillas de tomate enano para cúpula.", Tags: new[] { "Cultivo" }),
+        new ItemDefinition("semilla_trigo", "Semillas de trigo", "#e3c46b", ItemCategory.Seed,
+            "Semillas de trigo enano para cámara cerrada.", Tags: new[] { "Cultivo" }),
         new ItemDefinition("papas", "Papas", "#d9a05b", ItemCategory.Consumable,
             "Alimento cultivado en el invernadero.", Tags: new[] { "Comida" }),
         new ItemDefinition("lechuga", "Lechuga", "#7bd06a", ItemCategory.Consumable,
@@ -143,8 +151,7 @@ public sealed class ItemDatabase
             "Cúpula de invernadero plegada. Colócala desde el inventario sin gastar materiales; al guardarla se pierde lo que hubiera dentro.",
             Tags: new[] { "Estructura", "Dome", "Colocable" }),
         new ItemDefinition("parcela", "Bandeja de cultivo", "#c9a45a", ItemCategory.Structure,
-            "Bandeja abierta para cultivar al descubierto. Solo las plantas resistentes cosechan en un bioma cálido; la cúpula es más segura.",
-            Tags: new[] { "Estructura", "Colocable", "Agricultura" }),
+            "Bandeja abierta para cultivar al descubierto. Se construye desde el menú Construir."),
     });
 }
 
@@ -191,15 +198,15 @@ public sealed class PartDatabase
     public static PartDatabase CreateDefault() => new(new[]
     {
         new PartDefinition("casco", "Sellado del casco", "Parches de aleación y sellador",
-            new Dictionary<string, int> { ["hierro"] = 5, ["silicio"] = 2 }),
+            new Dictionary<string, int> { ["hierro"] = 6, ["silicio"] = 3, ["regolito"] = 4 }),
         new PartDefinition("panel", "Paneles solares", "Celdas de silicio sobre bastidor",
-            new Dictionary<string, int> { ["silicio"] = 7, ["hierro"] = 2 }),
+            new Dictionary<string, int> { ["silicio"] = 10, ["hierro"] = 3, ["basalto"] = 2 }),
         new PartDefinition("antena", "Antena de alta ganancia", "Para hablar con la Tierra",
-            new Dictionary<string, int> { ["hierro"] = 3, ["silicio"] = 5 }),
+            new Dictionary<string, int> { ["hierro"] = 4, ["silicio"] = 6, ["basalto"] = 2 }),
         new PartDefinition("combustible", "Tanque de combustible", "Propelente hecho con agua y hierro",
-            new Dictionary<string, int> { ["hielo"] = 6, ["hierro"] = 4 }),
+            new Dictionary<string, int> { ["hielo"] = 6, ["agua"] = 6, ["hierro"] = 4 }),
         new PartDefinition("motor", "Motor de ascenso", "Toberas y turbobomba. Exige las otras cuatro piezas.",
-            new Dictionary<string, int> { ["hierro"] = 8, ["silicio"] = 4 }, RequiresAllOthers: true),
+            new Dictionary<string, int> { ["hierro"] = 8, ["silicio"] = 4, ["basalto"] = 4, ["regolito"] = 4 }, RequiresAllOthers: true),
     });
 }
 

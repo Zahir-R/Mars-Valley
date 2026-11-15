@@ -25,7 +25,7 @@ public sealed class SaveGameData
     public List<PickupData> Pickups { get; set; } = new();
     public List<DomeData> Domes { get; set; } = new();
     public List<FieldData> Fields { get; set; } = new();
-    public double RestCooldown { get; set; }
+    public List<BeaconData> Beacons { get; set; } = new();
 
     /// <summary>O2 refills the ship has left; old saves default to the full amount.</summary>
     public int ShipO2Charges { get; set; } = 5;
@@ -107,6 +107,9 @@ public sealed class FixtureData
 {
     public string Kind { get; set; } = string.Empty;
     public int SlotIndex { get; set; }
+    public bool Deployed { get; set; } = true;
+    public double Damage { get; set; }
+    public double Stored { get; set; }
 }
 
 public sealed class PlotData
@@ -115,6 +118,7 @@ public sealed class PlotData
     public string PlantId { get; set; } = string.Empty;
     public string State { get; set; } = string.Empty;
     public double Time { get; set; }
+    public double Damage { get; set; }
 }
 
 public sealed class FieldData
@@ -124,6 +128,14 @@ public sealed class FieldData
     public string PlantId { get; set; } = string.Empty;
     public string State { get; set; } = string.Empty;
     public double Time { get; set; }
+    public double Damage { get; set; }
+}
+
+public sealed class BeaconData
+{
+    public float X { get; set; }
+    public float Y { get; set; }
+    public double Damage { get; set; }
 }
 
 public sealed class DomeData
@@ -144,7 +156,7 @@ public sealed class DomeData
 /// <summary>JSON (de)serialization for saves; no engine calls, fully testable.</summary>
 public static class SaveSerializer
 {
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 4;
 
     private static readonly JsonSerializerOptions Options = new()
     {
@@ -162,11 +174,12 @@ public static class SaveSerializer
             var data = JsonSerializer.Deserialize<SaveGameData>(json, Options);
             if (data == null) return null;
             if (data.Version == CurrentVersion) return data;
-            if (data.Version is 1 or 2)
+            if (data.Version is 1 or 2 or 3)
             {
-                // Migrate older saves; the survivor quest block is created by ApplySave.
+                // Migrate older saves; new blocks (beacons, damage) default to safe values.
                 data.Version = CurrentVersion;
                 data.Fields ??= new List<FieldData>();
+                data.Beacons ??= new List<BeaconData>();
                 return data;
             }
             return null;

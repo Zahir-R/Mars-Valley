@@ -11,6 +11,12 @@ public static class SpriteArt
 
     private static readonly Dictionary<string, Texture2D> Cache = new();
 
+    /// <summary>
+    /// World-sprite alpha. 1 shows all interactable world art; background ground decals
+    /// are hidden separately in <c>GroundLayer</c> because the player cannot interact with them.
+    /// </summary>
+    public static float WorldAlpha = 1f;
+
     public static Texture2D? Get(string fileName)
     {
         if (Cache.TryGetValue(fileName, out var cached)) return cached;
@@ -27,11 +33,13 @@ public static class SpriteArt
     /// <summary>Draws a sprite centred on <paramref name="center"/>, scaled to <paramref name="targetHeight"/>.</summary>
     public static void DrawSprite(CanvasItem c, Texture2D? texture, Vector2 center, float targetHeight, Color? modulate = null)
     {
-        if (texture == null) return;
+        if (texture == null || WorldAlpha <= 0f) return;
         var size = texture.GetSize();
         if (size.Y <= 0) return;
         var scale = targetHeight / size.Y;
         var drawSize = size * scale;
-        c.DrawTextureRect(texture, new Rect2(center - drawSize / 2f, drawSize), false, modulate ?? Colors.White);
+        var mod = modulate ?? Colors.White;
+        mod.A *= WorldAlpha;
+        c.DrawTextureRect(texture, new Rect2(center - drawSize / 2f, drawSize), false, mod);
     }
 }

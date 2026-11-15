@@ -155,9 +155,13 @@ public sealed class GameSession : IGameContext
                     else Say(buildReason, MessageKind.Warn);
                     break;
                 case DomeFixtureTarget fixture when intent.InteractPressed:
-                    if (fixture.Fixture.Kind == FixtureKind.Bunk)
+                    if (fixture.Fixture.Kind == FixtureKind.SolarPanel)
                     {
-                        Rest(fixture.Dome);
+                        ToggleSolarPanel(fixture.Fixture);
+                    }
+                    else if (fixture.Fixture.Kind == FixtureKind.Battery)
+                    {
+                        RefillFromBattery(fixture.Dome, fixture.Fixture);
                     }
                     else
                     {
@@ -189,9 +193,11 @@ public sealed class GameSession : IGameContext
         }
 
         NodeSystem.Update(this, dt);
+        BeaconSystem.Update(this, dt);
         DomeSystem.Update(this, dt);
         FarmingSystem.Update(this, dt);
         WeatherSystem.Update(this, dt);
+        DamageSystem.Update(this, dt);
         NpcQuestSystem.Update(this, dt);
         SurvivalSystem.Update(this, dt);
         NormalizeFoodSource();
@@ -233,6 +239,41 @@ public sealed class GameSession : IGameContext
     public void ReadNpcLetter(string id) => NpcQuestSystem.Read(State, id);
 
     public int UnreadNpcCount => NpcQuestSystem.UnreadCount(State);
+
+    // ---- Launch ---------------------------------------------------------------
+
+    /// <summary>Launch checklist: only the ship repairs matter; the parts themselves need rarer materials.</summary>
+    public IReadOnlyList<(string Key, bool Done)> LaunchRequirements()
+    {
+        var parts = RepairSystem.Count(State) >= Parts.Parts.Count;
+        return new List<(string, bool)> { ("Reparar las 5 piezas", parts) };
+    }
+
+    public bool CanLaunch => RepairSystem.Count(State) >= Parts.Parts.Count && !State.Over;
+
+    /// <summary>Manual launch. If the survivor was found but not yet decided, opens the final letter first.</summary>
+    public bool Launch()
+    {
+        if (!CanLaunch || State.Over) return false;
+
+        if (State.SurvivorFound && State.NpcOutcome == NpcOutcome.None)
+        {
+            State.ActiveNpcLetterId = NpcQuestDatabase.Final;
+            OpenModal();
+            Events.RaisePanelRequested("nave");
+            return false;
+        }
+
+        if (State.NpcOutcome == NpcOutcome.None &&
+            State.NpcPhase is NpcPhase.AwaitingSupplies or NpcPhase.SuppliesDelivered or NpcPhase.SiteSkipped or NpcPhase.FinalPending)
+        {
+            State.NpcOutcome = NpcOutcome.LostContact;
+        }
+
+        State.WinTimer = Balance.WinDelay;
+        Say("¡Motor encendido! Preparando el despegue…", MessageKind.Good);
+        return true;
+    }
 
     public void Craft(string recipeId)
     {
@@ -297,7 +338,57 @@ public sealed class GameSession : IGameContext
 
     public void ClearPendingFixture() => State.PendingFixture = null;
 
-    public void Rest(Dome dome) => new RestCommand(dome).Execute(this);
+    /// <summary>Retracted panels stop generating and are safe from storms.</summary>
+    public void ToggleSolarPanel(Fixture fixture)
+    {
+        fixture.Deployed = !fixture.Deployed;
+        Say(fixture.Deployed ? "Extiendes el panel solar." : "Retraes el panel solar.", MessageKind.Info);
+    }
+
+    /// <summary>Refills the suit from a battery's stored energy, capped by its 40-point reserve.</summary>
+    public void RefillFromBattery(Dome dome, Fixture battery)
+    {
+        var s = State;
+        var b = Balance;
+        var needed = 100 - s.Vitals.Energy;
+        if (needed <= 0)
+        {
+            Say("Ya tienes toda la energía.", MessageKind.Info);
+            return;
+        }
+
+        var available = Math.Min(battery.Stored, b.BatteryStorage);
+        var give = Math.Min(needed, available);
+        if (give <= 0)
+        {
+            Say("La batería está vacía.", MessageKind.Warn);
+            return;
+        }
+
+        battery.Stored -= give;
+        s.Vitals.Energy = Math.Min(100, s.Vitals.Energy + give);
+        Say(Loc.F("Recargas {0} de energía desde la batería.", (int)Math.Round(give)), MessageKind.Good);
+    }
+
+    /// <summary>Places an interior fixture on the first free dome slot (used by the terminal).</summary>
+    public bool BuildFixture(FixtureKind kind, out string reason)
+    {
+        var dome = ActiveDome;
+        if (dome == null)
+        {
+            reason = Loc.T("Sin cúpula seleccionada");
+            return false;
+        }
+
+        var slot = BuildSystem.FirstFreeSlot(Balance, dome);
+        if (slot < 0)
+        {
+            reason = Loc.T("No hay hueco libre en la cúpula.");
+            return false;
+        }
+
+        return BuildSystem.BuildFixture(this, dome, slot, kind, out reason);
+    }
 
     public void StartMoveDome(Dome dome)
     {
@@ -342,7 +433,7 @@ public sealed class GameSession : IGameContext
                 Balance.DomeCost
                     .Where(kv => !State.Inventory.Has(kv.Key, kv.Value))
                     .Select(kv => Items.TryGet(kv.Key, out var def) ? def.Name : kv.Key));
-            Say($"Faltan materiales para construir una cúpula ({missing}).", MessageKind.Warn);
+            Say(Loc.F("Faltan materiales para construir una cúpula ({0}).", missing), MessageKind.Warn);
             return;
         }
 
@@ -358,7 +449,7 @@ public sealed class GameSession : IGameContext
         if (!Items.TryGet(itemId, out var def) || !def.HasTag("Colocable")) return;
         if (State.Inventory[itemId] < 1)
         {
-            Say($"No tienes {def.Name.ToLowerInvariant()} para colocar.", MessageKind.Warn);
+            Say(Loc.F("No tienes {0} para colocar.", Loc.T(def.Name)), MessageKind.Warn);
             return;
         }
 
@@ -366,6 +457,42 @@ public sealed class GameSession : IGameContext
         State.PendingFixture = null;
         State.PlacingItem = itemId;
         State.Building = true;
+    }
+
+    /// <summary>Starts placing an open-air crop tray (built from materials in the B menu).</summary>
+    public bool StartFieldBuild()
+    {
+        if (State.Flow != FlowState.Playing || State.ModalOpen) return false;
+        foreach (var (item, amount) in Balance.FieldCost)
+        {
+            if (State.Inventory.Has(item, amount)) continue;
+            Say(Loc.F("Faltan materiales: {0}.", Loc.T(Items[item].Name)), MessageKind.Warn);
+            return false;
+        }
+
+        State.MovingDomeId = null;
+        State.PendingFixture = null;
+        State.PlacingItem = "parcela";
+        State.Building = true;
+        return true;
+    }
+
+    /// <summary>Starts placing an outdoor beacon (built from materials in the B menu).</summary>
+    public bool StartBeaconBuild()
+    {
+        if (State.Flow != FlowState.Playing || State.ModalOpen) return false;
+        foreach (var (item, amount) in Balance.BeaconCost)
+        {
+            if (State.Inventory.Has(item, amount)) continue;
+            Say(Loc.F("Faltan materiales: {0}.", Loc.T(Items[item].Name)), MessageKind.Warn);
+            return false;
+        }
+
+        State.MovingDomeId = null;
+        State.PendingFixture = null;
+        State.PlacingItem = "beacon";
+        State.Building = true;
+        return true;
     }
 
     public void CancelBuild()
@@ -377,10 +504,12 @@ public sealed class GameSession : IGameContext
 
     public bool CanPlaceDome() => BuildSystem.CanPlaceAt(this, State.BuildX, State.BuildY, out _);
 
-    public bool CanPlaceCurrentPlacement() =>
-        State.PlacingItem == "parcela"
-            ? BuildSystem.CanPlaceField(this, State.BuildX, State.BuildY, out _)
-            : BuildSystem.CanPlaceAt(this, State.BuildX, State.BuildY, out _);
+    public bool CanPlaceCurrentPlacement() => State.PlacingItem switch
+    {
+        "parcela" => BuildSystem.CanPlaceField(this, State.BuildX, State.BuildY, out _),
+        "beacon" => BuildSystem.CanPlaceBeacon(this, State.BuildX, State.BuildY, out _),
+        _ => BuildSystem.CanPlaceAt(this, State.BuildX, State.BuildY, out _),
+    };
 
     // ---- Save / load -----------------------------------------------------------
 
@@ -396,7 +525,6 @@ public sealed class GameSession : IGameContext
             Face = (int)s.Face,
             FoodSource = s.FoodSource,
             SelectedCrop = s.SelectedCrop,
-            RestCooldown = s.RestCooldown,
             ShipO2Charges = s.ShipO2Charges,
             Vitals = new VitalsData
             {
@@ -482,7 +610,14 @@ public sealed class GameSession : IGameContext
             };
             foreach (var fixture in dome.Fixtures)
             {
-                saved.Fixtures.Add(new FixtureData { Kind = fixture.Kind.ToString(), SlotIndex = fixture.SlotIndex });
+                saved.Fixtures.Add(new FixtureData
+                {
+                    Kind = fixture.Kind.ToString(),
+                    SlotIndex = fixture.SlotIndex,
+                    Deployed = fixture.Deployed,
+                    Damage = fixture.Damage,
+                    Stored = fixture.Stored,
+                });
             }
             foreach (var plot in dome.Plots)
             {
@@ -492,6 +627,7 @@ public sealed class GameSession : IGameContext
                     PlantId = plot.PlantId,
                     State = plot.State.ToString(),
                     Time = plot.Time,
+                    Damage = plot.Damage,
                 });
             }
             data.Domes.Add(saved);
@@ -507,7 +643,13 @@ public sealed class GameSession : IGameContext
                 PlantId = plot.PlantId,
                 State = plot.State.ToString(),
                 Time = plot.Time,
+                Damage = plot.Damage,
             });
+        }
+
+        foreach (var beacon in s.Beacons)
+        {
+            data.Beacons.Add(new BeaconData { X = beacon.X, Y = beacon.Y, Damage = beacon.Damage });
         }
 
         return data;
@@ -552,7 +694,6 @@ public sealed class GameSession : IGameContext
             if (Parts.TryGet(id, out _)) s.Repairs[id] = true;
         }
 
-        s.RestCooldown = Math.Max(0, data.RestCooldown);
         s.ShipO2Charges = Math.Clamp(data.ShipO2Charges, 0, Balance.ShipO2ChargesMax);
 
         if (data.Npc != null)
@@ -631,7 +772,12 @@ public sealed class GameSession : IGameContext
             {
                 if (Enum.TryParse<FixtureKind>(fixture.Kind, out var kind))
                 {
-                    dome.Fixtures.Add(new Fixture(kind, fixture.SlotIndex));
+                    dome.Fixtures.Add(new Fixture(kind, fixture.SlotIndex)
+                    {
+                        Deployed = fixture.Deployed,
+                        Damage = Math.Max(0, fixture.Damage),
+                        Stored = Math.Max(0, fixture.Stored),
+                    });
                 }
             }
 
@@ -647,6 +793,7 @@ public sealed class GameSession : IGameContext
                     PlantId = plot.PlantId,
                     State = state,
                     Time = plot.Time,
+                    Damage = Math.Max(0, plot.Damage),
                 };
                 dome.Plots.Add(created);
                 s.Plots.Add(created);
@@ -663,8 +810,14 @@ public sealed class GameSession : IGameContext
                 PlantId = saved.PlantId,
                 State = state,
                 Time = saved.Time,
+                Damage = Math.Max(0, saved.Damage),
             };
             s.Plots.Add(created);
+        }
+
+        foreach (var saved in data.Beacons)
+        {
+            s.Beacons.Add(new Beacon(saved.X, saved.Y) { Damage = Math.Max(0, saved.Damage) });
         }
 
         State = s;
@@ -701,6 +854,7 @@ public sealed class GameSession : IGameContext
 
     public void Say(string text, MessageKind kind = MessageKind.Info)
     {
+        text = Loc.T(text);
         var hour = GameClock.HourOf(State.Time, Balance.SolLength);
         State.Log.Insert(0, new LogEntry(GameClock.FormatTime(hour), text, kind));
         if (State.Log.Count > 7) State.Log.RemoveRange(7, State.Log.Count - 7);
@@ -720,7 +874,7 @@ public sealed class GameSession : IGameContext
 
         s.Inventory["hielo"] = Balance.StartIce;
         s.Inventory["agua"] = Balance.StartWater;
-        s.Inventory["semillas"] = Balance.StartSeeds;
+        foreach (var plant in Plants.Plants) s.Inventory[plant.SeedId] = Balance.StartSeedsPerCrop;
         s.Inventory["papas"] = Balance.StartPotatoes;
         s.Inventory["fijaciones"] = Balance.StartFijaciones;
         s.FoodSource = "papas";

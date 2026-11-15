@@ -119,6 +119,12 @@ public class NpcQuestTests
         Assert.Equal(NpcOutcome.Rescued, session.State.NpcOutcome);
         Assert.False(session.State.PendingFinalChoice);
         Assert.Equal(NpcPhase.Done, session.State.NpcPhase);
+
+        // The launch is manual: repair the parts and press the button.
+        foreach (var part in session.Parts.Parts) session.State.Repairs[part.Id] = true;
+
+        Assert.True(session.CanLaunch);
+        Assert.True(session.Launch());
         Assert.True(session.State.WinTimer > 0);
     }
 

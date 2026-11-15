@@ -45,7 +45,7 @@ public class SaveLoadTests
         AddFixture(session, dome, 0, FixtureKind.Farm);
         AddFixture(session, dome, 1, FixtureKind.SolarPanel);
         AddFixture(session, dome, 2, FixtureKind.Battery);
-        AddFixture(session, dome, 3, FixtureKind.Bunk);
+        AddFixture(session, dome, 3, FixtureKind.Battery);
 
         var farm = dome.Plots[0];
         new PlantCommand(farm, "tomate").Execute(session);
@@ -69,7 +69,6 @@ public class SaveLoadTests
         session.State.Stats.Planted = 3;
         session.State.Stats.Harvested = 2;
         session.State.Repairs["casco"] = true;
-        session.State.RestCooldown = 4.5;
         session.State.FoodSource = "tomate";
         session.State.SelectedCrop = "trigo";
 
@@ -106,7 +105,6 @@ public class SaveLoadTests
         Assert.Equal(Direction.Left, restored.State.Face);
         Assert.Equal(123, restored.State.Storm.Next, 3);
         Assert.Equal(5, restored.State.Storm.Left, 3);
-        Assert.Equal(4.5, restored.State.RestCooldown, 3);
 
         // Inventory and mission progress.
         Assert.Equal(17, restored.State.Inventory["hierro"]);
@@ -129,7 +127,7 @@ public class SaveLoadTests
         Assert.Equal(3, restoredDome.Fixtures.Count);
         Assert.Contains(restoredDome.Fixtures, f => f.Kind == FixtureKind.SolarPanel && f.SlotIndex == 1);
         Assert.Contains(restoredDome.Fixtures, f => f.Kind == FixtureKind.Battery && f.SlotIndex == 2);
-        Assert.Contains(restoredDome.Fixtures, f => f.Kind == FixtureKind.Bunk && f.SlotIndex == 3);
+        Assert.Contains(restoredDome.Fixtures, f => f.Kind == FixtureKind.Battery && f.SlotIndex == 3);
 
         var restoredPlot = Assert.Single(restored.State.Plots);
         Assert.Same(restoredDome, restoredPlot.Dome);

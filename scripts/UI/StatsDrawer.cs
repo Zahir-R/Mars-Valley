@@ -31,11 +31,11 @@ public sealed class StatsDrawer
         _vitals.SetColumns(1);
 
         _foodIcon = new IconSwatch(44);
-        _foodName = UiTheme.Text("Sin fuente", 13, Palette.Suit, Fonts.SansWeight(600));
+        _foodName = UiTheme.Text(Loc.T("Sin fuente"), 13, Palette.Suit, Fonts.SansWeight(600));
         _foodCount = UiTheme.Label(string.Empty, 11, Palette.Muted);
 
         var foodText = UiTheme.VBox(2);
-        foodText.AddChild(UiTheme.Label("Fuente de comida", 11, Palette.Muted));
+        foodText.AddChild(UiTheme.Label(Loc.T("Fuente de comida"), 11, Palette.Muted));
         foodText.AddChild(_foodName);
         foodText.AddChild(_foodCount);
 
@@ -46,11 +46,11 @@ public sealed class StatsDrawer
         var foodCard = UiTheme.CardPanel(10);
         foodCard.AddChild(foodRow);
 
-        _energy = UiTheme.Label("Sin cúpulas", 12, Palette.Muted);
+        _energy = UiTheme.Label(Loc.T("Sin cúpulas"), 12, Palette.Muted);
 
         var energyCard = UiTheme.CardPanel(10);
         var energyBox = UiTheme.VBox(2);
-        energyBox.AddChild(UiTheme.Label("Energía de la base", 11, Palette.Muted));
+        energyBox.AddChild(UiTheme.Label(Loc.T("Energía de la base"), 11, Palette.Muted));
         energyBox.AddChild(_energy);
         energyCard.AddChild(energyBox);
 
@@ -62,7 +62,7 @@ public sealed class StatsDrawer
 
         Icon = UiTheme.GhostButton("III", 12);
         Icon.CustomMinimumSize = new Vector2(34, 62);
-        Icon.TooltipText = "Estadísticas (Tab)";
+        Icon.TooltipText = Loc.T("Estadísticas (Tab)");
         Icon.Pressed += onToggle;
     }
 
@@ -93,12 +93,12 @@ public sealed class StatsDrawer
         }
         if (_session.State.Domes.Count == 0)
         {
-            _energy.Text = "Sin cúpulas";
+            _energy.Text = Loc.T("Sin cúpulas");
             _energy.AddThemeColorOverride("font_color", Palette.Muted);
         }
         else
         {
-            _energy.Text = $"{energy:0}/{capacity:0} · paneles {panels}";
+            _energy.Text = $"{energy:0}/{capacity:0} · {Loc.T("paneles")} {panels}";
             _energy.AddThemeColorOverride("font_color", capacity > 0 && energy <= 0.5 ? Palette.Health : Palette.Muted);
         }
 
@@ -106,15 +106,15 @@ public sealed class StatsDrawer
         if (src == null || !_session.Items.TryGet(src, out var def))
         {
             _foodIcon.Set(Palette.Panel2, "—");
-            _foodName.Text = "Sin fuente";
+            _foodName.Text = Loc.T("Sin fuente");
             _foodCount.Text = string.Empty;
             return;
         }
 
         var count = _session.State.Inventory[src];
         _foodIcon.Set(Palette.FromHex(def.Color), Initials(def.Name));
-        _foodName.Text = def.Name;
-        _foodCount.Text = count > 0 ? $"x{count}" : "sin existencias";
+        _foodName.Text = Loc.T(def.Name);
+        _foodCount.Text = count > 0 ? $"x{count}" : Loc.T("sin existencias");
         _foodCount.AddThemeColorOverride("font_color", count > 0 ? Palette.Muted : Palette.Health);
     }
 

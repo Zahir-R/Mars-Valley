@@ -90,6 +90,12 @@ public partial class WorldView : Node2D
             Session.Plants.TryGet(plot.PlantId, out var plant);
             var dim = plot.Dome != null && !InsideDome(s, plot.Dome);
             WorldDraw.DrawPlantSlot(this, plot, plant, b, clock, dim);
+            if (plot.Damage > 0)
+            {
+                var hurt = (float)Mathf.Clamp(plot.Damage / b.StructureMaxDamage, 0, 1);
+                WorldDraw.Stroke(this, plot.X, plot.Y, b.PlotSize, b.PlotSize,
+                    new Color(0.95f, 0.3f, 0.25f, 0.35f + 0.5f * hurt), 1);
+            }
         }
 
         foreach (var dome in s.Domes)
@@ -109,6 +115,10 @@ public partial class WorldView : Node2D
             if (s.PlacingItem == "parcela")
             {
                 WorldDraw.DrawFieldGhost(this, s.BuildX, s.BuildY, b, Session.CanPlaceCurrentPlacement());
+            }
+            else if (s.PlacingItem == "beacon")
+            {
+                WorldDraw.DrawBeaconGhost(this, s.BuildX, s.BuildY, b, Session.CanPlaceCurrentPlacement());
             }
             else
             {
@@ -146,6 +156,11 @@ public partial class WorldView : Node2D
         if (s.SiteUnlocked && !s.SurvivorFound && !s.SiteSkipped)
         {
             drawables.Add((s.SurvivorY + 8, () => WorldDraw.DrawSurvivorSite(this, s, clock)));
+        }
+
+        foreach (var beacon in s.Beacons)
+        {
+            drawables.Add((beacon.Y + 8, () => WorldDraw.DrawBeacon(this, beacon, Session.Balance, clock)));
         }
 
         drawables.Add((s.Py + 12, () => WorldDraw.DrawAstronaut(this, s)));

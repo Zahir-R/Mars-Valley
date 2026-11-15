@@ -19,7 +19,7 @@ public sealed class MineNodeCommand(ResourceNode node) : IGameCommand
 
         if (!ctx.HasToolTag(def.RequiredToolTag))
         {
-            ctx.Say($"Necesitas una herramienta adecuada para extraer {item.Name.ToLowerInvariant()}.",
+            ctx.Say(Loc.F("Necesitas una herramienta adecuada para extraer {0}.", Loc.T(item.Name)),
                 MessageKind.Warn);
             return;
         }
@@ -52,7 +52,7 @@ public sealed class MineNodeCommand(ResourceNode node) : IGameCommand
         if (node.Amount <= 0)
         {
             node.Regen = b.NodeRegenTime;
-            ctx.Say($"Depósito de {item.Name.ToLowerInvariant()} agotado. Se regenera en unos {b.NodeRegenTime:0} s.");
+            ctx.Say(Loc.F("Depósito de {0} agotado. Se regenera en unos {1} s.", Loc.T(item.Name), (int)Math.Round(b.NodeRegenTime)));
         }
     }
 
@@ -93,7 +93,7 @@ public sealed class PickupCommand(Pickup pickup) : IGameCommand
             Color = def.Color,
             Life = 0.9,
         });
-        ctx.Say($"Recoges {pickup.Amount} {def.Name.ToLowerInvariant()}.", MessageKind.Good);
+        ctx.Say(Loc.F("Recoges {0} {1}.", pickup.Amount, Loc.T(def.Name)), MessageKind.Good);
     }
 }
 
@@ -107,7 +107,7 @@ public sealed class CraftCommand(RecipeDefinition recipe) : IGameCommand
         foreach (var (item, amount) in recipe.Ingredients)
         {
             if (s.Inventory.Has(item, amount)) continue;
-            ctx.Say($"Faltan materiales para {recipe.Name}.", MessageKind.Warn);
+            ctx.Say(Loc.F("Faltan materiales para {0}.", Loc.T(recipe.Name)), MessageKind.Warn);
             return;
         }
 
@@ -115,7 +115,7 @@ public sealed class CraftCommand(RecipeDefinition recipe) : IGameCommand
         s.Inventory.Add(recipe.OutputItemId, recipe.OutputAmount);
 
         var name = ctx.Items.TryGet(recipe.OutputItemId, out var def) ? def.Name : recipe.OutputItemId;
-        ctx.Say($"Fabricado: {name}.", MessageKind.Good);
+        ctx.Say(Loc.F("Fabricado: {0}.", Loc.T(name)), MessageKind.Good);
     }
 }
 
@@ -136,18 +136,18 @@ public sealed class PlantCommand(Plot plot, string plantId) : IGameCommand
             }
         }
 
-        if (s.Inventory["semillas"] < 1)
+        if (s.Inventory[plant.SeedId] < 1)
         {
             ctx.Say("No tienes semillas.", MessageKind.Warn);
             return;
         }
 
-        s.Inventory.Remove("semillas", 1);
+        s.Inventory.Remove(plant.SeedId, 1);
         plot.PlantId = plantId;
         plot.State = PlotState.Dry;
         plot.Time = plant.GrowTime;
         s.Stats.Planted++;
-        ctx.Say($"Plantas {plant.Name.ToLowerInvariant()}. Falta regarla.");
+        ctx.Say(Loc.F("Plantas {0}. Falta regarla.", Loc.T(plant.Name)));
     }
 }
 
@@ -161,14 +161,14 @@ public sealed class WaterCommand(Plot plot) : IGameCommand
         var need = plant.WaterPerGrowth;
         if (s.Inventory["agua"] < need)
         {
-            ctx.Say($"Necesitas {need} de agua. Funde hielo en la nave.", MessageKind.Warn);
+            ctx.Say(Loc.F("Necesitas {0} de agua. Funde hielo en la nave.", need), MessageKind.Warn);
             return;
         }
 
         s.Inventory.Remove("agua", need);
         plot.State = PlotState.Grow;
         plot.Time = plant.GrowTime;
-        ctx.Say($"Riegas la planta. Madura en unos {plant.GrowTime:0} s.");
+        ctx.Say(Loc.F("Riegas la planta. Madura en unos {0} s.", (int)Math.Round(plant.GrowTime)));
     }
 }
 
@@ -182,40 +182,11 @@ public sealed class HarvestCommand(Plot plot) : IGameCommand
         var name = ctx.Items[plant.HarvestItemId].Name;
         s.Inventory.Add(plant.HarvestItemId, plant.HarvestYield);
         var seed = ctx.Rng.NextDouble() < ctx.Balance.HarvestSeedChance;
-        if (seed) s.Inventory.Add("semillas", 1);
+        if (seed) s.Inventory.Add(plant.SeedId, 1);
         s.Stats.Harvested++;
         plot.State = PlotState.Empty;
-        ctx.Say($"Cosechas {plant.HarvestYield} {name.ToLowerInvariant()}" + (seed ? " y 1 semilla." : "."),
+        ctx.Say(Loc.F("Cosechas {0} {1}", plant.HarvestYield, Loc.T(name)) + (seed ? Loc.T(" y 1 semilla.") : "."),
             MessageKind.Good);
-    }
-}
-
-public sealed class RestCommand(Dome dome) : IGameCommand
-{
-    public void Execute(IGameContext ctx)
-    {
-        var s = ctx.State;
-        var b = ctx.Balance;
-        if (!s.Running || s.Paused || s.Over) return;
-        if (!dome.HasBunk)
-        {
-            ctx.Say("No hay litera en esta cúpula.", MessageKind.Warn);
-            return;
-        }
-        if (s.RestCooldown > 0)
-        {
-            ctx.Say($"La litera aún no está lista ({Math.Ceiling(s.RestCooldown)} s).", MessageKind.Warn);
-            return;
-        }
-        if (s.Vitals.Energy >= 100)
-        {
-            ctx.Say("Ya tienes toda la energía.", MessageKind.Info);
-            return;
-        }
-
-        s.Vitals.Energy = Math.Min(100, s.Vitals.Energy + b.RestEnergyGain);
-        s.RestCooldown = b.RestCooldown;
-        ctx.Say($"Descansas en la litera: +{b.RestEnergyGain} energía.", MessageKind.Good);
     }
 }
 
@@ -235,12 +206,11 @@ public sealed class RepairPartCommand(string partId) : IGameCommand
 
         RepairSystem.Pay(s, part);
         s.Repairs[partId] = true;
-        ctx.Say("Reparado: " + part.Name + ".", MessageKind.Good);
+        ctx.Say(Loc.F("Reparado: {0}.", Loc.T(part.Name)), MessageKind.Good);
 
         if (RepairSystem.Count(s) >= ctx.Parts.Parts.Count)
         {
-            s.WinTimer = b.WinDelay;
-            ctx.Say("¡Motor encendido! Preparando el despegue…", MessageKind.Good);
+            ctx.Say("Nave lista. Pulsa Despegar.", MessageKind.Good);
             NpcQuestSystem.OnShipRepaired(ctx);
         }
     }
@@ -297,7 +267,7 @@ public sealed class EatCommand : IGameCommand
 
         s.Vitals.Food = Math.Min(100, s.Vitals.Food + ctx.Balance.EatFoodGain);
         s.Vitals.Energy = Math.Min(100, s.Vitals.Energy + ctx.Balance.EatEnergyGain);
-        ctx.Say($"Comes {ctx.Items[foodId].Name.ToLowerInvariant()}: +{ctx.Balance.EatFoodGain} alimento, +{ctx.Balance.EatEnergyGain} energía.",
+        ctx.Say(Loc.F("Comes {0}: +{1} alimento, +{2} energía.", Loc.T(ctx.Items[foodId].Name), ctx.Balance.EatFoodGain, ctx.Balance.EatEnergyGain),
             MessageKind.Good);
     }
 }
@@ -312,7 +282,7 @@ public sealed class EatItemCommand(string itemId) : IGameCommand
 
         if (s.Inventory[itemId] < 1)
         {
-            ctx.Say($"No tienes {def.Name.ToLowerInvariant()}.", MessageKind.Warn);
+            ctx.Say(Loc.F("No tienes {0}.", Loc.T(def.Name)), MessageKind.Warn);
             return;
         }
 
@@ -338,7 +308,7 @@ public sealed class RefillO2Command : IGameCommand
         s.Inventory.Remove("hielo", 1);
         s.Vitals.O2 = 100;
         s.ShipO2Charges -= 1;
-        ctx.Say($"Recargas oxígeno: +100 %. ({s.ShipO2Charges} cargas restantes)", MessageKind.Good);
+        ctx.Say(Loc.F("Recargas oxígeno: +100 %. ({0} cargas restantes)", s.ShipO2Charges), MessageKind.Good);
     }
 }
 

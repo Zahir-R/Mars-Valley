@@ -55,7 +55,7 @@ public sealed class ItemSlot
 
         _icon = new ColorRect { Color = Palette.FromHex(item.Color), CustomMinimumSize = new Vector2(14, 14) };
 
-        var name = UiTheme.Label(item.Name, 12, Palette.Muted);
+        var name = UiTheme.Label(Loc.T(item.Name), 12, Palette.Muted);
         name.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
 
         _count = UiTheme.Text("0", 16, Palette.Suit, Fonts.MonoWeight(600));
@@ -98,8 +98,8 @@ public sealed class PartRow
         StateDot = new ColorRect { Color = Palette.Health, CustomMinimumSize = new Vector2(10, 10) };
         StateDot.SizeFlagsVertical = Control.SizeFlags.ShrinkBegin;
 
-        _name = UiTheme.Text(part.Name, 13, Palette.Suit, Fonts.SansWeight(600));
-        _desc = UiTheme.Label(part.Description, 12, Palette.Muted);
+        _name = UiTheme.Text(Loc.T(part.Name), 13, Palette.Suit, Fonts.SansWeight(600));
+        _desc = UiTheme.Label(Loc.T(part.Description), 12, Palette.Muted);
         var text = UiTheme.VBox(2);
         text.AddChild(_name);
         text.AddChild(_desc);
@@ -115,14 +115,14 @@ public sealed class PartRow
             var def = session.Items[item];
             var row = UiTheme.HBox(6);
             row.AddChild(new ColorRect { Color = Palette.FromHex(def.Color), CustomMinimumSize = new Vector2(14, 14) });
-            row.AddChild(UiTheme.Label(def.Name, 12, Palette.Muted));
+            row.AddChild(UiTheme.Label(Loc.T(def.Name), 12, Palette.Muted));
             var em = UiTheme.Text($"0/{amount}", 12, Palette.Health, Fonts.Mono);
             row.AddChild(em);
             row.SetMeta("item", item);
             _costs.AddChild(row);
         }
 
-        Button = UiTheme.PrimaryButton("Reparar");
+        Button = UiTheme.PrimaryButton(Loc.T("Reparar"));
         Button.SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin;
 
         var body = UiTheme.VBox(8);
@@ -159,12 +159,12 @@ public sealed class PartRow
             em.AddThemeColorOverride("font_color", state.Inventory[item] >= needed ? Palette.Food : Palette.Health);
         }
 
-        var label = "Reparar";
+        var label = Loc.T("Reparar");
         var enabled = true;
-        if (done) { label = "Reparada"; enabled = false; }
-        else if (locked) { label = "Bloqueada"; enabled = false; }
-        else if (!near) { label = "Lejos de la nave"; enabled = false; }
-        else if (!pay) { label = "Faltan materiales"; enabled = false; }
+        if (done) { label = Loc.T("Reparada"); enabled = false; }
+        else if (locked) { label = Loc.T("Bloqueada"); enabled = false; }
+        else if (!near) { label = Loc.T("Lejos de la nave"); enabled = false; }
+        else if (!pay) { label = Loc.T("Faltan materiales"); enabled = false; }
 
         Button.Text = label;
         Button.Disabled = !enabled;
@@ -182,8 +182,8 @@ public sealed class RecipeRow
     {
         _recipe = recipe;
 
-        var title = UiTheme.Text(recipe.Name, 13, Palette.Suit, Fonts.SansWeight(600));
-        var desc = UiTheme.Label(recipe.Description, 12, Palette.Muted);
+        var title = UiTheme.Text(Loc.T(recipe.Name), 13, Palette.Suit, Fonts.SansWeight(600));
+        var desc = UiTheme.Label(Loc.T(recipe.Description), 12, Palette.Muted);
         desc.AutowrapMode = TextServer.AutowrapMode.WordSmart;
 
         var costs = UiTheme.HBox(12);
@@ -192,7 +192,7 @@ public sealed class RecipeRow
             var def = session.Items[item];
             var chip = UiTheme.HBox(5);
             chip.AddChild(new ColorRect { Color = Palette.FromHex(def.Color), CustomMinimumSize = new Vector2(12, 12) });
-            var label = UiTheme.Text($"{def.Name} 0/{amount}", 12, Palette.Health, Fonts.Mono);
+            var label = UiTheme.Text($"{Loc.T(def.Name)} 0/{amount}", 12, Palette.Health, Fonts.Mono);
             chip.AddChild(label);
             costs.AddChild(chip);
             _costs.Add((item, amount, label));
@@ -220,7 +220,7 @@ public sealed class RecipeRow
         foreach (var (item, amount, label) in _costs)
         {
             var have = session.State.Inventory[item];
-            label.Text = $"{session.Items[item].Name} {Math.Min(have, amount)}/{amount}";
+            label.Text = $"{Loc.T(session.Items[item].Name)} {Math.Min(have, amount)}/{amount}";
             label.AddThemeColorOverride("font_color", have >= amount ? Palette.Food : Palette.Health);
             if (have < amount) ok = false;
         }
@@ -289,7 +289,7 @@ public sealed class GoalRow
 
     public void Refresh(GoalProgress progress, bool isCurrent)
     {
-        _progress.Text = progress.Done ? "Hecho" : progress.Progress;
+        _progress.Text = progress.Done ? Loc.T("Hecho") : progress.Progress;
         _text.AddThemeColorOverride("font_color", progress.Done ? Palette.Muted : Palette.Suit);
         _text.AddThemeConstantOverride("outline_size", progress.Done ? 0 : 0);
         _check.Color = progress.Done ? Palette.O2 : Colors.Transparent;

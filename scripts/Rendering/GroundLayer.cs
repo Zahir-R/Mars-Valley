@@ -77,6 +77,7 @@ public partial class GroundLayer : Node2D
 
     private static void ScatterSheet(Image image, RandomNumberGenerator rng, IReadOnlyList<string> files, int count, float scale = 1f)
     {
+        if (SpriteArt.WorldAlpha <= 0f) return;
         var sprites = new List<Image>(files.Count);
         foreach (var file in files)
         {

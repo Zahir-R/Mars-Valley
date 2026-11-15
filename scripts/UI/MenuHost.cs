@@ -66,44 +66,44 @@ public partial class MenuHost : Control
         backdrop.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
         AddChild(backdrop);
 
-        _continueButtonHolder = UiTheme.PrimaryButton("Continuar", 15);
+        _continueButtonHolder = UiTheme.PrimaryButton(Loc.T("Continuar"), 15);
         (_continueButtonHolder).Pressed += () => Continue?.Invoke();
 
-        _newGameButtonHolder = UiTheme.PrimaryButton("Nuevo juego", 14);
+        _newGameButtonHolder = UiTheme.PrimaryButton(Loc.T("Nuevo juego"), 14);
         (_newGameButtonHolder).Pressed += () => NewGame?.Invoke();
 
-        _loadButtonHolder = UiTheme.GhostButton("Cargar partida", 13);
+        _loadButtonHolder = UiTheme.GhostButton(Loc.T("Cargar partida"), 13);
         (_loadButtonHolder).Pressed += () => ShowSlots(load: true);
 
-        _optionsButtonHolder = UiTheme.GhostButton("Opciones", 13);
+        _optionsButtonHolder = UiTheme.GhostButton(Loc.T("Opciones"), 13);
         (_optionsButtonHolder).Pressed += () => ShowView(MenuView.Options, _context);
 
-        _quitButtonHolder = UiTheme.GhostButton("Salir", 13);
+        _quitButtonHolder = UiTheme.GhostButton(Loc.T("Salir"), 13);
         (_quitButtonHolder).Pressed += () => Quit?.Invoke();
 
-        _resumeButtonHolder = UiTheme.PrimaryButton("Continuar", 14);
+        _resumeButtonHolder = UiTheme.PrimaryButton(Loc.T("Continuar"), 14);
         (_resumeButtonHolder).Pressed += () => Continue?.Invoke();
 
-        _saveButtonHolder = UiTheme.PrimaryButton("Guardar partida", 13);
+        _saveButtonHolder = UiTheme.PrimaryButton(Loc.T("Guardar partida"), 13);
         (_saveButtonHolder).Pressed += () => ShowSlots(load: false);
 
-        _pauseLoadButtonHolder = UiTheme.GhostButton("Cargar partida", 13);
+        _pauseLoadButtonHolder = UiTheme.GhostButton(Loc.T("Cargar partida"), 13);
         (_pauseLoadButtonHolder).Pressed += () => ShowSlots(load: true);
 
-        _pauseOptionsButtonHolder = UiTheme.GhostButton("Opciones", 13);
+        _pauseOptionsButtonHolder = UiTheme.GhostButton(Loc.T("Opciones"), 13);
         (_pauseOptionsButtonHolder).Pressed += () => ShowView(MenuView.Options, MenuContext.Pause);
 
-        _quitMenuButtonHolder = UiTheme.GhostButton("Salir al menú", 13);
+        _quitMenuButtonHolder = UiTheme.GhostButton(Loc.T("Salir al menú"), 13);
         (_quitMenuButtonHolder).Pressed += () => QuitToMenu?.Invoke();
 
         _startView = MakeCard(
-            "Varados en Marte",
-            "El módulo de ascenso quedó dañado en el Cráter Gale. Repara las cinco piezas antes de que se agote tu oxígeno.",
+            "Mars Valley",
+            Loc.T("El módulo de ascenso quedó dañado en el Cráter Gale. Repara las cinco piezas antes de que se agote tu oxígeno."),
             _continueButtonHolder, _newGameButtonHolder, _loadButtonHolder, _optionsButtonHolder, _quitButtonHolder);
 
         _pauseView = MakeCard(
-            "Pausa",
-            "El reloj marciano está detenido.",
+            Loc.T("Pausa"),
+            Loc.T("El reloj marciano está detenido."),
             _resumeButtonHolder, _saveButtonHolder, _pauseLoadButtonHolder, _pauseOptionsButtonHolder, _quitMenuButtonHolder);
 
         _volumeSlider = new HSlider
@@ -118,44 +118,56 @@ public partial class MenuHost : Control
 
         _volumeValue = UiTheme.Label(string.Empty, 12, Palette.Muted);
         var volumeRow = UiTheme.VBox(6);
-        volumeRow.AddChild(UiTheme.Label("Volumen maestro", 13, Palette.Suit));
+        volumeRow.AddChild(UiTheme.Label(Loc.T("Volumen maestro"), 13, Palette.Suit));
         volumeRow.AddChild(_volumeSlider);
         volumeRow.AddChild(_volumeValue);
 
-        var controlsButton = UiTheme.GhostButton("Controles", 12);
+        var languageRow = UiTheme.VBox(6);
+        languageRow.AddChild(UiTheme.Label(Loc.T("Idioma"), 13, Palette.Suit));
+        var languageButtons = UiTheme.HBox(8);
+        var spanishButton = UiTheme.GhostButton("Español", 12);
+        spanishButton.Pressed += () => ChangeLanguage("es");
+        var englishButton = UiTheme.GhostButton("English", 12);
+        englishButton.Pressed += () => ChangeLanguage("en");
+        languageButtons.AddChild(spanishButton);
+        languageButtons.AddChild(englishButton);
+        languageRow.AddChild(languageButtons);
+
+        var controlsButton = UiTheme.GhostButton(Loc.T("Controles"), 12);
         controlsButton.Pressed += () => ShowView(MenuView.Controls, _context);
 
-        var optionsBack = UiTheme.GhostButton("Volver", 12);
+        var optionsBack = UiTheme.GhostButton(Loc.T("Volver"), 12);
         optionsBack.Pressed += () => ShowRoot(_returnTo);
 
         var optionsHint = UiTheme.Label(
-            "El volumen y los controles se aplican al instante y se guardan para la próxima vez.",
+            Loc.T("El volumen y los controles se aplican al instante y se guardan para la próxima vez."),
             11, Palette.Muted);
         optionsHint.AutowrapMode = TextServer.AutowrapMode.WordSmart;
 
         var optionsBody = UiTheme.VBox(10);
-        optionsBody.AddChild(UiTheme.Caption("Opciones"));
+        optionsBody.AddChild(UiTheme.Caption(Loc.T("Opciones")));
         optionsBody.AddChild(volumeRow);
+        optionsBody.AddChild(languageRow);
         optionsBody.AddChild(controlsButton);
         optionsBody.AddChild(optionsHint);
         optionsBody.AddChild(optionsBack);
 
-        _optionsView = MakeCard("Opciones", null, optionsBody);
+        _optionsView = MakeCard(Loc.T("Opciones"), null, optionsBody);
 
         _controlsList = UiTheme.VBox(6);
-        var resetButton = UiTheme.GhostButton("Restablecer controles", 11);
+        var resetButton = UiTheme.GhostButton(Loc.T("Restablecer controles"), 11);
         resetButton.Pressed += ResetControls;
-        var controlsTitle = UiTheme.Text("Controles", 15, Palette.Suit, Fonts.SansWeight(700));
-        var controlsBack = UiTheme.GhostButton("Volver", 12);
+        var controlsTitle = UiTheme.Text(Loc.T("Controles"), 15, Palette.Suit, Fonts.SansWeight(700));
+        var controlsBack = UiTheme.GhostButton(Loc.T("Volver"), 12);
         controlsBack.Pressed += () => ShowView(MenuView.Options, _returnTo);
-        var controlsHint = UiTheme.Label("Pulsa «Cambiar» y luego una tecla para reasignar. Esc cancela.", 11, Palette.Muted);
+        var controlsHint = UiTheme.Label(Loc.T("Pulsa «Cambiar» y luego una tecla para reasignar. Esc cancela."), 11, Palette.Muted);
         var controlsBody = UiTheme.VBox(8);
         controlsBody.AddChild(controlsTitle);
         controlsBody.AddChild(controlsHint);
         controlsBody.AddChild(_controlsList);
         controlsBody.AddChild(resetButton);
         controlsBody.AddChild(controlsBack);
-        _controlsView = MakeCard("Controles", null, controlsBody);
+        _controlsView = MakeCard(Loc.T("Controles"), null, controlsBody);
 
         _saveSlots = new SlotListView(saveMode: true);
         _loadSlots = new SlotListView(saveMode: false);
@@ -164,21 +176,21 @@ public partial class MenuHost : Control
         _saveSlots.DeleteConfirmed += SlotHostDelete;
         _loadSlots.DeleteConfirmed += id => DeleteSlotConfirmed?.Invoke(id);
 
-        var saveBack = UiTheme.GhostButton("Volver", 12);
+        var saveBack = UiTheme.GhostButton(Loc.T("Volver"), 12);
         saveBack.Pressed += () => ShowRoot(MenuContext.Pause);
         var saveBody = UiTheme.VBox(8);
-        saveBody.AddChild(UiTheme.Caption("Guardar partida"));
+        saveBody.AddChild(UiTheme.Caption(Loc.T("Guardar partida")));
         saveBody.AddChild(_saveSlots.Root);
         saveBody.AddChild(saveBack);
-        _saveSlotsView = MakeCard("Guardar partida", null, saveBody);
+        _saveSlotsView = MakeCard(Loc.T("Guardar partida"), null, saveBody);
 
-        var loadBack = UiTheme.GhostButton("Volver", 12);
+        var loadBack = UiTheme.GhostButton(Loc.T("Volver"), 12);
         loadBack.Pressed += () => ShowRoot(_returnTo);
         var loadBody = UiTheme.VBox(8);
-        loadBody.AddChild(UiTheme.Caption("Cargar partida"));
+        loadBody.AddChild(UiTheme.Caption(Loc.T("Cargar partida")));
         loadBody.AddChild(_loadSlots.Root);
         loadBody.AddChild(loadBack);
-        _loadSlotsView = MakeCard("Cargar partida", null, loadBody);
+        _loadSlotsView = MakeCard(Loc.T("Cargar partida"), null, loadBody);
 
         BuildControlsList();
 
@@ -364,14 +376,14 @@ public partial class MenuHost : Control
     {
         foreach (var def in InputAdapter.BindingDefinitions)
         {
-            var name = UiTheme.Label(def.Label, 12, Palette.Suit);
+            var name = UiTheme.Label(Loc.T(def.Label), 12, Palette.Suit);
             name.CustomMinimumSize = new Vector2(200, 0);
 
             var key = UiTheme.Label(DisplayBinding(def.Action), 12, Palette.Muted);
             key.CustomMinimumSize = new Vector2(90, 0);
             key.HorizontalAlignment = HorizontalAlignment.Center;
 
-            var change = UiTheme.GhostButton("Cambiar", 11);
+            var change = UiTheme.GhostButton(Loc.T("Cambiar"), 11);
             change.CustomMinimumSize = new Vector2(110, 0);
             change.Pressed += () => StartCapture(def.Action, change);
 
@@ -414,6 +426,21 @@ public partial class MenuHost : Control
         _session.Say("Controles restablecidos.", MessageKind.Info);
     }
 
+    private void ChangeLanguage(string language)
+    {
+        if (SettingsService.GetLanguage() == language) return;
+
+        var activeRun = _session.State.Running || _session.State.Paused;
+        if (activeRun)
+        {
+            SaveManager.SaveTo(_session, SaveSlots.Autosave);
+            GameBootstrap.LoadAutosaveOnBoot = true;
+        }
+
+        SettingsService.SetLanguage(language);
+        GetTree().ReloadCurrentScene();
+    }
+
     private void RefreshControls()
     {
         _capturing = null;
@@ -422,7 +449,7 @@ public partial class MenuHost : Control
             if (_keyLabels.TryGetValue(def.Action, out var label)) label.Text = DisplayBinding(def.Action);
             if (_changeButtons.TryGetValue(def.Action, out var button))
             {
-                button.Text = "Cambiar";
+                button.Text = Loc.T("Cambiar");
                 button.Disabled = false;
             }
         }

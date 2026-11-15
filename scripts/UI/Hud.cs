@@ -23,6 +23,7 @@ public partial class Hud : Control
     private readonly GoalsPanel _goals;
     private readonly DomePanel _dome;
     private readonly PlantPanel _plant;
+    private readonly BuildMenuPanel _buildMenu;
     private readonly StatsDrawer _stats;
     private readonly MinimapPanel _minimap;
     private readonly ToastHost _toast = new();
@@ -49,6 +50,7 @@ public partial class Hud : Control
         _goals = new GoalsPanel(session);
         _dome = new DomePanel(session, CloseModal);
         _plant = new PlantPanel(session, CloseModal);
+        _buildMenu = new BuildMenuPanel(session, CloseModal);
         _stats = new StatsDrawer(session, ToggleStats);
         _minimap = new MinimapPanel(session);
 
@@ -127,10 +129,10 @@ public partial class Hud : Control
     private HBoxContainer BuildTopButtons()
     {
         var box = UiTheme.HBox(8);
-        box.AddChild(ColoredButton("Diario", "#2e4a38", () => OpenPanel("log")));
-        box.AddChild(ColoredButton("Misiones", "#5c3a28", () => OpenPanel("missions")));
-        box.AddChild(ColoredButton("Inventario", "#274356", () => OpenPanel("inventory")));
-        box.AddChild(ColoredButton("Pausa", "#4a3a52", _session.TogglePause));
+        box.AddChild(ColoredButton(Loc.T("Diario"), "#2e4a38", () => OpenPanel("log")));
+        box.AddChild(ColoredButton(Loc.T("Misiones"), "#5c3a28", () => OpenPanel("missions")));
+        box.AddChild(ColoredButton(Loc.T("Inventario"), "#274356", () => OpenPanel("inventory")));
+        box.AddChild(ColoredButton(Loc.T("Pausa"), "#4a3a52", _session.TogglePause));
         return box;
     }
 
@@ -186,7 +188,7 @@ public partial class Hud : Control
     {
         if (SaveManager.SaveTo(_session, slot))
         {
-            _session.Say($"Guardado en {SaveSlots.NameOf(slot)}.", MessageKind.Good);
+            _session.Say(Loc.F("Guardado en {0}.", SaveSlots.NameOf(slot)), MessageKind.Good);
         }
         else
         {
@@ -200,7 +202,7 @@ public partial class Hud : Control
     {
         if (SaveManager.TryLoad(_session, slot, out var error))
         {
-            _session.Say($"Partida cargada desde {SaveSlots.NameOf(slot)}.", MessageKind.Good);
+            _session.Say(Loc.F("Partida cargada desde {0}.", SaveSlots.NameOf(slot)), MessageKind.Good);
         }
         else
         {
@@ -214,7 +216,7 @@ public partial class Hud : Control
     {
         SaveManager.Delete(slot);
         _menu.RefreshSlots();
-        _session.Say($"Ranura {SaveSlots.NameOf(slot)} borrada.", MessageKind.Info);
+        _session.Say(Loc.F("Ranura {0} borrada.", SaveSlots.NameOf(slot)), MessageKind.Info);
     }
 
     private void QuitToMenu()
@@ -242,13 +244,14 @@ public partial class Hud : Control
 
         var (title, content) = id switch
         {
-            "nave" => ("Nave", _ship.Root),
-            "taller" => ("Taller", _workshop.Root),
+            "nave" => (Loc.T("Nave"), _ship.Root),
+            "taller" => (Loc.T("Taller"), _workshop.Root),
             "plant" => PlantPanelFor(_session.State.ActivePlot),
-            "log" => ("Bitácora", _log.Root),
-            "missions" => ("Objetivos", _goals.Root),
-            "inventory" => ("Inventario", _inventory.Root),
-            "cupula" => ("Terminal de cúpula", _dome.Root),
+            "log" => (Loc.T("Bitácora"), _log.Root),
+            "missions" => (Loc.T("Objetivos"), _goals.Root),
+            "inventory" => (Loc.T("Inventario"), _inventory.Root),
+            "cupula" => (Loc.T("Terminal de cúpula"), _dome.Root),
+            "build" => (Loc.T("Construir"), _buildMenu.Root),
             _ => (string.Empty, (Control)null!),
         };
         if (content == null) return;

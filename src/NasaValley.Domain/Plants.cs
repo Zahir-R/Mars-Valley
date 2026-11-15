@@ -15,7 +15,12 @@ public sealed record PlantDefinition(
     float MaxTempC,
     float MinLight,
     int HarvestYield,
-    string Description);
+    string Description,
+    string SeedItemId = "")
+{
+    /// <summary>Inventory item consumed when planting this crop (one seed per planting).</summary>
+    public string SeedId => string.IsNullOrEmpty(SeedItemId) ? "semilla_" + Id : SeedItemId;
+}
 
 public sealed class PlantDatabase
 {

@@ -25,9 +25,9 @@ public static class MissionSystem
         foreach (var goal in missions.Goals)
         {
             var progress = Evaluate(s, goal, parts);
-            if (!progress.Done) return $"{goal.Text} ({progress.Progress})";
+            if (!progress.Done) return $"{Loc.T(goal.Text)} ({progress.Progress})";
         }
-        return "Todo listo para despegar";
+        return Loc.T("Todo listo para despegar");
     }
 
     private static GoalProgress Build(bool done, int value, int target) =>

@@ -16,10 +16,10 @@ public static class SaveSlots
 
     public static string NameOf(string id) => id switch
     {
-        Autosave => "Autoguardado",
-        Slot1 => "Ranura 1",
-        Slot2 => "Ranura 2",
-        Slot3 => "Ranura 3",
+        Autosave => Loc.T("Autoguardado"),
+        Slot1 => Loc.T("Ranura 1"),
+        Slot2 => Loc.T("Ranura 2"),
+        Slot3 => Loc.T("Ranura 3"),
         _ => id,
     };
 }
@@ -82,7 +82,7 @@ public static class SaveManager
 
         if (!HasSave(slotId))
         {
-            error = "No hay una partida guardada en esa ranura.";
+            error = Loc.T("No hay una partida guardada en esa ranura.");
             return false;
         }
 
@@ -91,7 +91,7 @@ public static class SaveManager
         {
             if (file is null)
             {
-                error = "No se pudo abrir el guardado.";
+                error = Loc.T("No se pudo abrir el guardado.");
                 return false;
             }
             json = file.GetAsText();
@@ -100,7 +100,7 @@ public static class SaveManager
         var data = SaveSerializer.Deserialize(json);
         if (data is null)
         {
-            error = "El guardado está vacío, dañado o es de una versión incompatible.";
+            error = Loc.T("El guardado está vacío, dañado o es de una versión incompatible.");
             return false;
         }
 
@@ -143,7 +143,7 @@ public static class SaveManager
 
     public static string DescribeSlot(SlotInfo info)
     {
-        if (!info.Exists) return "Vacía";
+        if (!info.Exists) return Loc.T("Vacía");
 
         string when;
         if (!string.IsNullOrWhiteSpace(info.SavedAtUtc) &&
@@ -153,11 +153,11 @@ public static class SaveManager
         }
         else
         {
-            when = "guardada";
+            when = Loc.T("guardada");
         }
 
         var day = GameClock.DayNumber(info.Time, BalanceConfig.Default.SolLength);
-        return $"{when} · Sol {day}";
+        return $"{when} · {Loc.T("Sol")} {day}";
     }
 
     private static bool EnsureFolder()

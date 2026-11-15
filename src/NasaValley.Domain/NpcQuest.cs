@@ -35,7 +35,9 @@ public sealed record NpcLetter(
     string Sender,
     string Subject,
     string Body,
-    NpcDecision Decision);
+    NpcDecision Decision,
+    string SubjectEn = "",
+    string BodyEn = "");
 
 /// <summary>
 /// Content for the survivor quest. Letters are plain data so the quest can be retuned or
@@ -57,27 +59,46 @@ public static class NpcQuestDatabase
             "Ares-7, ¿me escuchan? Soy la doctora Ríos, de la misión Ares-3. " +
             "Mi aterrizador se partió y estoy sola. No te pido que vengas todavía: " +
             "deja 3 de agua en la baliza que marca tu mapa y sabré que no estoy sola.",
-            NpcDecision.Acknowledge),
+            NpcDecision.Acknowledge,
+            "Is anyone there?",
+            "Ares-7, can you hear me? I'm Dr. Ríos, from the Ares-3 mission. " +
+            "My lander broke apart and I'm alone. I'm not asking you to come yet: " +
+            "leave 3 water at the beacon marked on your map and I'll know I'm not alone."),
         new NpcLetter(Coordinates, "Ares-3", "Gracias por el agua",
             "No sabes lo que significa. Si te quedan fuerzas, mi refugio está en " +
             "X:{x} · Y:{y}. Está lejos: calcula tu oxígeno antes de venir. " +
             "Si no puedes, lo entiendo.",
-            NpcDecision.GoOrSkip),
+            NpcDecision.GoOrSkip,
+            "Thanks for the water",
+            "You have no idea what this means. If you have the strength, my shelter is at " +
+            "X:{x} · Y:{y}. It's far: check your oxygen before you come. " +
+            "If you can't, I understand."),
         new NpcLetter(Skipped, "Ares-3", "Te entiendo",
             "No pasa nada. Cuídate y repara tu nave. Si cambias de idea, la baliza seguirá aquí.",
-            NpcDecision.Acknowledge),
+            NpcDecision.Acknowledge,
+            "I understand",
+            "It's okay. Stay safe and fix your ship. If you change your mind, the beacon will still be here."),
         new NpcLetter(Found, "Ares-3", "No puedo creerlo",
             "¡Has venido! Toma mi pico reforzado, repuestos y un poco de hielo de mi reserva. " +
             "Y cuando arregles tu motor… ¿me llevarías a casa?",
-            NpcDecision.Acknowledge),
+            NpcDecision.Acknowledge,
+            "I can't believe it",
+            "You came! Take my reinforced pick, spare parts and some ice from my reserve. " +
+            "And when you fix your engine… will you take me home?"),
         new NpcLetter(Final, "Ares-3", "Tu motor arrancó",
             "Escuché el despegue. La última decisión es tuya: hay sitio para mí, pero el tanque " +
             "va justo. ¿Me llevas o despegas solo?",
-            NpcDecision.Final),
+            NpcDecision.Final,
+            "Your engine started",
+            "I heard the launch. The last choice is yours: there's room for me, but the tank " +
+            "is tight. Will you take me or leave alone?"),
         new NpcLetter(FinalLost, "Señal perdida", "Silencio en la baliza",
             "La baliza de Ares-3 dejó de responder. En algún lugar, una superviviente " +
             "se queda mirando el cielo mientras tu nave se aleja.",
-            NpcDecision.Acknowledge),
+            NpcDecision.Acknowledge,
+            "Lost signal",
+            "The Ares-3 beacon stopped responding. Somewhere, a survivor " +
+            "watches the sky as your ship pulls away."),
     };
 
     public static NpcLetter? Get(string id) => Letters.FirstOrDefault(l => l.Id == id);
@@ -139,7 +160,8 @@ public static class NpcQuestSystem
         if (s.Inventory[s.CacheItemId] < s.CacheAmount)
         {
             var missing = s.CacheAmount - s.Inventory[s.CacheItemId];
-            ctx.Say($"Faltan {missing} de {ctx.Items[s.CacheItemId].Name.ToLowerInvariant()} para la baliza.", MessageKind.Warn);
+            ctx.Say(Loc.F("Faltan {0} de {1} para la baliza.", missing, Loc.T(ctx.Items[s.CacheItemId].Name)),
+                MessageKind.Warn);
             return false;
         }
 
@@ -215,12 +237,7 @@ public static class NpcQuestSystem
 
         var progressed = s.NpcPhase is NpcPhase.AwaitingSupplies or NpcPhase.SuppliesDelivered
             or NpcPhase.SiteSkipped or NpcPhase.SiteVisited;
-        if (!progressed)
-        {
-            // Never contacted or never delivered supplies: normal launch, no survivor ending.
-            s.WinTimer = ctx.Balance.WinDelay;
-            return;
-        }
+        if (!progressed) return;
 
         if (s.SurvivorFound)
         {
@@ -233,11 +250,9 @@ public static class NpcQuestSystem
             Deliver(ctx, NpcQuestDatabase.FinalLost);
         }
 
+        // Do not block the launch: the manual "Despegar" button stays available.
         s.NpcPhase = NpcPhase.FinalPending;
         s.PendingFinalChoice = true;
-        s.WinTimer = 0;
-        s.ModalOpen = true;
-        ctx.Events.RaisePanelRequested("nave");
     }
 
     /// <summary>Resolves the final choice. For a lost contact this simply acknowledges it.</summary>
@@ -260,8 +275,6 @@ public static class NpcQuestSystem
             NpcOutcome.LeftBehind => "Despegas con su señal a la espalda.",
             _ => "La baliza queda en silencio.",
         }, s.NpcOutcome == NpcOutcome.Rescued ? MessageKind.Good : MessageKind.Warn);
-
-        s.WinTimer = ctx.Balance.WinDelay;
     }
 
     /// <summary>Marks a letter read and focuses it in the Nave.</summary>
@@ -282,10 +295,16 @@ public static class NpcQuestSystem
     }
 
     /// <summary>Fills {x}/{y} placeholders with the survivor-site coordinates.</summary>
-    public static string BodyFor(NpcLetter letter, GameState s) =>
-        letter.Body
+    public static string BodyFor(NpcLetter letter, GameState s)
+    {
+        var body = Loc.IsEnglish && letter.BodyEn.Length > 0 ? letter.BodyEn : letter.Body;
+        return body
             .Replace("{x}", ((int)s.SurvivorX).ToString())
             .Replace("{y}", ((int)s.SurvivorY).ToString());
+    }
+
+    public static string SubjectFor(NpcLetter letter) =>
+        Loc.IsEnglish && letter.SubjectEn.Length > 0 ? letter.SubjectEn : letter.Subject;
 
     public static int UnreadCount(GameState s) => s.NpcUnread.Count;
 }

@@ -1,0 +1,503 @@
+using System.Collections.Generic;
+
+namespace NasaValley.Domain;
+
+/// <summary>
+/// Engine-agnostic localization. Keys are the Spanish source strings so existing
+/// content keeps working: anything without an English entry falls back to Spanish.
+/// The language is read from settings at boot and changes rebroadcast on reload.
+/// </summary>
+public static class Loc
+{
+    public static string Language { get; set; } = "es";
+
+    public static bool IsEnglish => Language == "en";
+
+    public static string T(string es) =>
+        IsEnglish && En.TryGetValue(es, out var en) ? en : es;
+
+    /// <summary>Translates a template (already containing {0}, {1}…) before formatting.</summary>
+    public static string F(string esTemplate, params object[] args) =>
+        string.Format(T(esTemplate), args);
+
+    private static readonly Dictionary<string, string> En = new()
+    {
+        // ---- menus / buttons ------------------------------------------------
+        ["Continuar"] = "Continue",
+        ["Nuevo juego"] = "New game",
+        ["Cargar"] = "Load",
+        ["Opciones"] = "Options",
+        ["Salir"] = "Quit",
+        ["Salir al menú"] = "Quit to menu",
+        ["Volver"] = "Back",
+        ["Controles"] = "Controls",
+        ["Restablecer controles"] = "Reset controls",
+        ["Controles restablecidos."] = "Controls reset.",
+        ["Esa tecla ya está asignada a otra acción."] = "That key is already assigned to another action.",
+        ["Partida cargada."] = "Game loaded.",
+        ["No se pudo guardar la partida."] = "Couldn't save the game.",
+        ["Guardado en {0}."] = "Saved to {0}.",
+        ["Partida cargada desde {0}."] = "Game loaded from {0}.",
+        ["Ranura {0} borrada."] = "Slot {0} deleted.",
+        ["Guardar partida"] = "Save game",
+        ["Cargar partida"] = "Load game",
+        ["Volumen maestro"] = "Master volume",
+        ["Idioma"] = "Language",
+        ["El volumen y los controles se aplican al instante y se guardan para la próxima vez."] =
+            "Volume and controls apply instantly and are saved for next time.",
+        ["Pausa"] = "Pause",
+        ["Mover izquierda"] = "Move left",
+        ["Mover derecha"] = "Move right",
+        ["Interactuar"] = "Interact",
+        ["Comer"] = "Eat",
+        ["Minimapa"] = "Minimap",
+        ["Estadísticas"] = "Stats",
+        ["Diario"] = "Log",
+        ["Misiones"] = "Missions",
+        ["Inventario"] = "Inventory",
+        ["Nave"] = "Ship",
+        ["Taller"] = "Workshop",
+        ["Objetivos"] = "Objectives",
+        ["Fabricar"] = "Craft",
+        ["Faltan materiales"] = "Missing materials",
+        ["Reparar"] = "Repair",
+        ["Reparada"] = "Repaired",
+        ["Bloqueada"] = "Locked",
+        ["Lejos de la nave"] = "Away from ship",
+        ["Despegar"] = "Launch",
+        ["Cerrar"] = "Close",
+        ["Escuchar señal"] = "Listen to signal",
+        ["Entendido"] = "Understood",
+        ["Ir al sitio"] = "Go to the site",
+        ["No iré"] = "I won't go",
+        ["Llevarla en la nave"] = "Take her aboard",
+        ["Dejarla atrás"] = "Leave her behind",
+        ["Despegar ahora"] = "Launch now",
+        ["¿Llevas a la superviviente?"] = "Will you take the survivor?",
+
+        // ---- vitals / stats -------------------------------------------------
+        ["Traje EVA"] = "EVA suit",
+        ["Oxígeno"] = "Oxygen",
+        ["Energía"] = "Energy",
+        ["Alimento"] = "Food",
+        ["Salud"] = "Health",
+        ["SELLADO"] = "SEALED",
+        ["O₂ CRÍTICO"] = "O₂ CRITICAL",
+        ["TORMENTA"] = "STORM",
+        ["ATENCIÓN"] = "CAUTION",
+        ["Fuente de comida"] = "Food source",
+        ["Sin fuente"] = "No source",
+        ["sin existencias"] = "out of stock",
+        ["Energía de la base"] = "Base energy",
+        ["Sin cúpulas"] = "No domes",
+        ["paneles"] = "panels",
+        ["Estadísticas (Tab)"] = "Stats (Tab)",
+
+        // ---- top bar --------------------------------------------------------
+        ["Hora local"] = "Local time",
+        ["Exterior"] = "Outside",
+        ["Presión"] = "Pressure",
+        ["Gravedad"] = "Gravity",
+        ["Misión Ares-7 · Cráter Gale"] = "Ares-7 Mission · Gale Crater",
+        ["Varados en Marte"] = "Marooned on Mars",
+        ["El módulo de ascenso quedó dañado en el Cráter Gale. Repara las cinco piezas antes de que se agote tu oxígeno."] =
+            "The ascent module was damaged in Gale Crater. Repair all five parts before your oxygen runs out.",
+        ["El reloj marciano está detenido."] = "The Martian clock is stopped.",
+
+        // ---- game frame -----------------------------------------------------
+        ["Construcción · E colocar · Esc cancelar"] = "Building · E place · Esc cancel",
+        ["Misión cumplida"] = "Mission complete",
+        ["Misión fallida"] = "Mission failed",
+        ["¡Despegue!"] = "Liftoff!",
+        ["Traje sin soporte"] = "Suit failure",
+        ["Volver al menú"] = "Back to menu",
+        ["Señal interferida · revisa la nave"] = "Interference · check the ship",
+        ["Alerta: tormenta de polvo en "] = "Warning: dust storm in ",
+        ["Tormenta de polvo · "] = "Dust storm · ",
+        ["Nave lista · abre la Nave para despegar"] = "Ship ready · open the Ship to launch",
+
+        // ---- ship panel -----------------------------------------------------
+        ["Reparación de la nave"] = "Ship repair",
+        ["Camina hasta la nave para reparar y recargar."] = "Walk to the ship to repair and refuel.",
+        ["Estás junto a la nave: puedes reparar y recargar."] = "You are at the ship: you can repair and refuel.",
+        ["Recargar O₂"] = "Refill O₂",
+        ["Fundir hielo"] = "Melt ice",
+        ["1 hielo → O₂ a 100 % (máx. 5 cargas)"] = "1 ice → O₂ to 100% (max 5 charges)",
+        ["1 hielo → 2 agua"] = "1 ice → 2 water",
+        ["1 hielo → O₂ a 100 % · {0}/{1} cargas"] = "1 ice → O₂ to 100% · {0}/{1} charges",
+        ["Soporte vital"] = "Life support",
+        ["cargas"] = "charges",
+        ["Nave lista para despegar"] = "Ship ready to launch",
+        ["Completa estos requisitos para despegar:"] = "Complete these requirements to launch:",
+        ["Reparar las 5 piezas"] = "Repair all 5 parts",
+        ["Extraer 5 de hielo"] = "Mine 5 ice",
+        ["Plantar tu primera papa"] = "Plant your first potato",
+        ["Cosechar tus primeras papas"] = "Harvest your first potatoes",
+        ["Reparar una pieza"] = "Repair one part",
+        ["Tener una cúpula con cultivo"] = "Own a dome with a farm",
+        ["Listo"] = "Done",
+        ["Pendiente"] = "Pending",
+        ["Nave lista. Pulsa Despegar."] = "Ship ready. Press Launch.",
+
+        // ---- workshop / goals ----------------------------------------------
+        ["Taller manual"] = "Manual workshop",
+        ["Extrae roca a mano. El regolito necesita una pala y el basalto un martillo o un pico. Recoge objetos sueltos junto a la nave."] =
+            "Mine rock by hand. Regolith needs a shovel and basalt a hammer or pick. Pick up loose items near the ship.",
+        ["Todo listo para despegar"] = "Ready to launch",
+        ["Hecho"] = "Done",
+        ["Mina de hielo"] = "Mine ice",
+        ["Repara una pieza de la nave"] = "Repair one ship part",
+        ["Repara cuatro piezas"] = "Repair four parts",
+        ["Repara el motor y despega"] = "Repair the engine and launch",
+
+        // ---- dome terminal --------------------------------------------------
+        ["Terminal de cúpula"] = "Dome terminal",
+        ["Construir cúpula"] = "Build dome",
+        ["Mover"] = "Move",
+        ["Guardar"] = "Store",
+        ["Destruir"] = "Destroy",
+        ["Confirmar destrucción"] = "Confirm destroy",
+        ["Actualizar"] = "Upgrade",
+        ["Construir en el interior"] = "Build inside",
+        ["Gestión"] = "Management",
+        ["Parcela"] = "Farm plot",
+        ["Panel solar"] = "Solar panel",
+        ["Batería"] = "Battery",
+        ["Litera"] = "Bunk",
+        ["Cúpula"] = "Dome",
+        ["nivel"] = "level",
+        ["Interior"] = "Inside",
+        ["Luz"] = "Light",
+        ["Generación"] = "Generation",
+        ["Huecos libres"] = "Free slots",
+        ["Parcelas"] = "Plots",
+        ["Paneles"] = "Panels",
+        ["Baterías"] = "Batteries",
+        ["Literas"] = "Bunks",
+        ["gratis"] = "free",
+        ["Nivel máximo alcanzado."] = "Max level reached.",
+        ["Mejora: "] = "Upgrade: ",
+        ["Elige una instalación y colócala en un hueco libre de la cúpula con E. La litera recupera energía al interactuar con ella."] =
+            "Choose a fixture and place it on a free dome slot with E. The bunk restores energy when used.",
+        ["Sin cúpula seleccionada"] = "No dome selected",
+        ["Acércate al terminal de una cúpula y pulsa E."] = "Approach a dome terminal and press E.",
+        ["Coloca otra cúpula; no requiere semillas ni cultivos."] = "Place another dome; no seeds or crops needed.",
+        ["Se guarda en el inventario; lo que haya dentro se pierde."] = "Stored in inventory; anything inside is lost.",
+        ["Cúpula {0} · nivel {1} · {2}"] = "Dome {0} · level {1} · {2}",
+        ["Interior {0}°C · Exterior {1}°C · Luz {2}%"] = "Inside {0}°C · Outside {1}°C · Light {2}%",
+        ["Energía {0}/{1} · Generación +{2}/s · Huecos libres {3}"] = "Energy {0}/{1} · Generation +{2}/s · Free slots {3}",
+        ["Parcelas {0} · Paneles {1} · Baterías {2} · Literas {3}"] = "Plots {0} · Panels {1} · Batteries {2} · Bunks {3}",
+
+        // ---- interaction prompts -------------------------------------------
+        ["Usar banco de trabajo"] = "Use workbench",
+        ["Abrir consola"] = "Open console",
+        ["Abrir panel de la nave"] = "Open ship panel",
+        ["Descansar en la litera"] = "Rest in the bunk",
+        ["Panel solar · abrir terminal"] = "Solar panel · open terminal",
+        ["Batería · abrir terminal"] = "Battery · open terminal",
+        ["Revisar instalación"] = "Inspect fixture",
+        ["Necesitas herramienta para extraer {0}"] = "You need a tool to extract {0}",
+        ["Extraer {0} ({1} restantes)"] = "Extract {0} ({1} left)",
+        ["Recoger {0} ({1})"] = "Pick up {0} ({1})",
+        ["Abrir panel de la nave ({0} nuevo)"] = "Open ship panel ({0} new)",
+        ["Entregar {0} {1}"] = "Deliver {0} {1}",
+        ["Faltan {0} {1}"] = "Need {0} more {1}",
+        ["Faltan {0} de {1} para la baliza."] = "Need {0} more {1} for the beacon.",
+        ["Terminal de la cúpula {0} (nivel {1})"] = "Dome {0} terminal (level {1})",
+        ["Colocar {0} ({1})"] = "Place {0} ({1})",
+        ["Regar ({0} agua)"] = "Water ({0} water)",
+        ["Necesitas {0} de agua"] = "You need {0} water",
+        ["Creciendo… {0} s"] = "Growing… {0} s",
+        ["Cosechar {0}"] = "Harvest {0}",
+        ["Necesitas una herramienta adecuada para extraer {0}."] = "You need a suitable tool to extract {0}.",
+        ["Depósito de {0} agotado. Se regenera en unos {1} s."] = "{0} vein depleted. It regenerates in about {1} s.",
+        ["Recoges {0} {1}."] = "You pick up {0} {1}.",
+        ["Faltan materiales para {0}."] = "Missing materials for {0}.",
+        ["Fabricado: {0}."] = "Crafted: {0}.",
+        ["Plantas {0}. Falta regarla."] = "You plant {0}. It needs water.",
+        ["Necesitas {0} de agua. Funde hielo en la nave."] = "You need {0} water. Melt ice at the ship.",
+        ["Riegas la planta. Madura en unos {0} s."] = "You water the plant. It matures in about {0} s.",
+        ["Cosechas {0} {1}"] = "You harvest {0} {1}",
+        [" y 1 semilla."] = " and 1 seed.",
+        ["La litera aún no está lista ({0} s)."] = "The bunk isn't ready yet ({0} s).",
+        ["Descansas en la litera: +{0} energía."] = "You rest in the bunk: +{0} energy.",
+        ["Reparado: {0}."] = "Repaired: {0}.",
+        ["Comes {0}: +{1} alimento, +{2} energía."] = "You eat {0}: +{1} food, +{2} energy.",
+        ["No tienes {0}."] = "You don't have {0}.",
+        ["Recargas oxígeno: +100 %. ({0} cargas restantes)"] = "Oxygen refilled: +100%. ({0} charges left)",
+        ["Mueves la cúpula {0}."] = "You move dome {0}.",
+        ["Colocas una {0} en la cúpula {1}."] = "You place a {0} in dome {1}.",
+        ["Cúpula {0} mejorada al nivel {1}."] = "Dome {0} upgraded to level {1}.",
+        ["Faltan materiales para construir una cúpula ({0})."] = "Not enough materials to build a dome ({0}).",
+        ["No tienes {0} para colocar."] = "You don't have {0} to place.",
+        ["Ahí hay {0}."] = "There is {0} there.",
+        ["El terminal chocaría con {0}."] = "The terminal would collide with {0}.",
+        ["Faltan materiales: {0}."] = "Missing materials: {0}.",
+        ["parcela de cultivo"] = "farm plot",
+        ["panel solar"] = "solar panel",
+        ["batería"] = "battery",
+        ["litera"] = "bunk",
+        ["objeto"] = "fixture",
+        ["Auxiliar a la superviviente"] = "Assist the survivor",
+        ["Necesitas herramienta para extraer "] = "You need a tool to extract ",
+        ["Cosechar"] = "Harvest",
+        ["Cultivo desconocido"] = "Unknown crop",
+        ["Falta luz"] = "Not enough light",
+        ["Hace frío"] = "Too cold",
+        ["Hace calor"] = "Too hot",
+        ["Plantar… (1 semilla)"] = "Plant… (1 seed)",
+        ["Sin semillas para plantar"] = "No seeds to plant",
+
+        // ---- common domain messages ----------------------------------------
+        ["No hay nada con qué interactuar aquí."] = "There is nothing to interact with here.",
+        ["No tienes comida. Cultiva algo en una cúpula."] = "You have no food. Grow something in a dome.",
+        ["Ya tienes toda la energía."] = "You already have full energy.",
+        ["No hay litera en esta cúpula."] = "There is no bunk in this dome.",
+        ["No tienes semillas."] = "You have no seeds.",
+        ["Nave lista para despegar."] = "Ship ready to launch.",
+        ["¡Motor encendido! Preparando el despegue…"] = "Engine on! Preparing for liftoff…",
+        ["Oxígeno bajo. Recarga en la nave con hielo."] = "Low oxygen. Refill at the ship with ice.",
+        ["Tienes hambre. Come una papa (F)."] = "You are hungry. Eat a potato (F).",
+        ["La tormenta de polvo ha pasado."] = "The dust storm has passed.",
+        ["¡Tormenta de polvo! El oxígeno se agota más rápido."] = "Dust storm! Oxygen drains faster.",
+        ["Decodificas el mensaje: alguien más sobrevivió al descenso."] =
+            "You decode the message: someone else survived the landing.",
+        ["La radio de la nave capta una señal interferida. Revisa la nave."] =
+            "The ship radio picks up an interfered signal. Check the ship.",
+        ["Dejas los suministros en la baliza. La señal responde con unas coordenadas."] =
+            "You leave the supplies at the beacon. The signal replies with coordinates.",
+        ["La baliza marca el camino. Vigila tu oxígeno."] = "The beacon marks the way. Watch your oxygen.",
+        ["Decides no arriesgar tu oxígeno. La baliza queda atrás."] =
+            "You decide not to risk your oxygen. The beacon is left behind.",
+        ["Encuentras a la superviviente. Te entrega su equipo."] =
+            "You find the survivor. She hands over her gear.",
+        ["Solo puedes plantar dentro de una cúpula."] = "You can only plant inside a dome.",
+        ["El O₂ de la nave está agotado."] = "The ship's O₂ is depleted.",
+        ["Fundes 1 hielo: +2 de agua."] = "You melt 1 ice: +2 water.",
+        ["Colocas una bandeja de cultivo en el terreno."] = "You place a crop tray on the ground.",
+        ["Colocas una cúpula almacenada."] = "You place a stored dome.",
+        ["Construyes una cúpula de invernadero vacía."] = "You build an empty greenhouse dome.",
+        ["La cúpula se retira: los cultivos de dentro se pierden."] = "The dome is removed: crops inside are lost.",
+        ["Guardas la cúpula en el inventario. Puedes colocarla sin gastar materiales."] =
+            "You store the dome in your inventory. You can place it without spending materials.",
+        ["Desmontas la cúpula."] = "You dismantle the dome.",
+        ["La cúpula no cabe ahí."] = "The dome doesn't fit there.",
+        ["No puedes construir sobre la nave."] = "You can't build on the ship.",
+        ["La cúpula ya está al máximo."] = "The dome is already at max level.",
+        ["Faltan materiales para la mejora."] = "Not enough materials to upgrade.",
+        ["La cúpula ya no existe."] = "The dome no longer exists.",
+        ["No tienes una bandeja de cultivo."] = "You don't have a crop tray.",
+        ["La bandeja no cabe ahí."] = "The tray doesn't fit there.",
+        ["Esa parcela no existe."] = "That slot doesn't exist.",
+        ["Ese hueco ya está ocupado."] = "That slot is already occupied.",
+        ["Aterrizaje forzoso en el cráter Gale. Empieza por conseguir hielo."] =
+            "Crash landing in Gale Crater. Start by gathering ice.",
+        ["Modo desarrollador desactivado."] = "Developer mode disabled.",
+        ["Modo desarrollador activado: todos los objetos y cultivos acelerados."] =
+            "Developer mode enabled: all items and accelerated crops.",
+        ["No tienes papas."] = "You have no potatoes.",
+        ["Usar herramientas llegará pronto."] = "Using tools is coming soon.",
+
+        // ---- save slots / log / hotbar --------------------------------------
+        ["Sobrescribir"] = "Overwrite",
+        ["Borrar"] = "Delete",
+        ["Confirmar"] = "Confirm",
+        ["¿Borrar?"] = "Delete?",
+        ["Autoguardado"] = "Autosave",
+        ["Ranura 1"] = "Slot 1",
+        ["Ranura 2"] = "Slot 2",
+        ["Ranura 3"] = "Slot 3",
+        ["guardada"] = "saved",
+        ["Vacía"] = "Empty",
+        ["Sol"] = "Sol",
+        ["No hay una partida guardada en esa ranura."] = "There is no saved game in that slot.",
+        ["No se pudo abrir el guardado."] = "Could not open the save.",
+        ["El guardado está vacío, dañado o es de una versión incompatible."] =
+            "The save is empty, corrupted, or from an incompatible version.",
+        ["Comer papa  F"] = "Eat potato  F",
+        ["WASD mover · E acción (mantén para extraer) · F comer · P pausa"] =
+            "WASD move · E action (hold to mine) · F eat · P pause",
+        ["Bitácora"] = "Log",
+        ["Sin registros todavía."] = "No entries yet.",
+
+        // ---- energy / build / structures ------------------------------------
+        ["Retraer panel"] = "Retract panel",
+        ["Extender panel"] = "Extend panel",
+        ["Recargar energía"] = "Refill energy",
+        ["Batería {0}"] = "Battery {0}",
+        ["La batería está vacía."] = "The battery is empty.",
+        ["Recargas {0} de energía desde la batería."] = "You refill {0} energy from the battery.",
+        ["No hay hueco libre en la cúpula."] = "No free dome slot.",
+        ["Recargas energía desde la batería: +{0}."] = "You refill energy from the battery: +{0}.",
+        ["La cúpula no tiene energía suficiente en sus baterías."] = "The dome doesn't have enough battery energy.",
+        ["Extiendes el panel solar."] = "You extend the solar panel.",
+        ["Retraes el panel solar."] = "You retract the solar panel.",
+        ["Construir"] = "Build",
+        ["Baliza"] = "Beacon",
+        ["Da luz y calor a las parcelas cercanas. Consume energía de una cúpula próxima."] =
+            "Lights and heats nearby plots. Drains energy from a nearby dome.",
+        ["Zona segura presurizada. Dentro se colocan parcelas, paneles y baterías."] =
+            "Pressurized safe zone. Plots, panels and batteries go inside.",
+        ["Bandeja de cultivo al descubierto. Dentro de una baliza crece como en una cúpula."] =
+            "Open-air crop tray. Inside a beacon's area it grows like in a dome.",
+        ["Coste: {0}"] = "Cost: {0}",
+        ["Construcción · baliza · E colocar · Esc cancelar"] = "Building · beacon · E place · Esc cancel",
+        ["Construcción · parcela · E colocar · Esc cancelar"] = "Building · farm plot · E place · Esc cancel",
+        ["La baliza no cabe ahí."] = "The beacon doesn't fit there.",
+        ["Colocas una baliza de luz y calor."] = "You place a light-and-heat beacon.",
+        ["La tormenta destruyó un panel solar."] = "The storm destroyed a solar panel.",
+        ["La tormenta destruyó un cultivo al descubierto."] = "The storm destroyed an open-air crop.",
+        ["La tormenta destruyó una baliza."] = "The storm destroyed a beacon.",
+        ["Elige una instalación y colócala en un hueco libre con E. La batería recarga tu traje; los paneles se pueden retraer para protegerlos de las tormentas."] =
+            "Choose a fixture and place it on a free slot with E. The battery refills your suit; panels can be retracted to protect them from storms.",
+        ["Parcelas {0} · Paneles {1} ({2} desplegados) · Baterías {3}"] =
+            "Plots {0} · Panels {1} ({2} deployed) · Batteries {3}",
+        ["Bandeja abierta para cultivar al descubierto. Se construye desde el menú Construir."] =
+            "Open tray for planting outdoors. Built from the Build menu.",
+        ["Cambiar"] = "Change",
+        ["Pulsa «Cambiar» y luego una tecla para reasignar. Esc cancela."] =
+            "Press \"Change\" then a key to rebind. Esc cancels.",
+
+        // ---- descriptions ---------------------------------------------------
+        ["Agua congelada bajo la superficie; fuente de agua y oxígeno."] =
+            "Frozen water below the surface; a source of water and oxygen.",
+        ["Agua fundida y tratada para cultivos y soporte vital."] =
+            "Melted, treated water for crops and life support.",
+        ["Mineral de óxido de hierro para piezas resistentes."] =
+            "Iron-oxide mineral for sturdy parts.",
+        ["Compuesto silicatado usado en vidrio y electrónica."] =
+            "Silicate compound used in glass and electronics.",
+        ["Semillas de papa para el invernadero."] = "Potato seeds for the greenhouse.",
+        ["Alimento cultivado en el invernadero."] = "Food grown in the greenhouse.",
+        ["Hoja verde de ciclo corto cultivada en cúpula."] = "A short-cycle leafy green grown in a dome.",
+        ["Raíz comestible de crecimiento rápido."] = "A fast-growing edible root.",
+        ["Fruto de cúpula que exige más luz y calor."] = "A dome fruit that needs more light and heat.",
+        ["Grano básico cultivado en cámara cerrada."] = "A staple grain grown in a closed chamber.",
+        ["Trozos sueltos de roca marciana. Base de la fabricación manual."] =
+            "Loose Martian rock chunks. The basis of hand crafting.",
+        ["Polvo y arena de la superficie. No es tierra fértil."] =
+            "Surface dust and sand. Not fertile soil.",
+        ["Roca volcánica dura rica en silicatos."] = "Hard volcanic rock rich in silicates.",
+        ["Tornillos y remaches rescatados de los restos de la nave."] =
+            "Screws and rivets salvaged from the ship's wreckage.",
+        ["Agarre de madera o compuesto para herramientas."] = "Wooden or composite tool handle.",
+        ["Rompe roca compacta como el basalto."] = "Breaks compact rock such as basalt.",
+        ["Retira regolito y material suelto."] = "Removes regolith and loose material.",
+        ["Extrae depósitos de roca con eficacia."] = "Efficiently extracts rock deposits.",
+        ["Pico con refuerzo de basalto; mina y excava."] = "Basalt-reinforced pick; mines and digs.",
+        ["Cúpula de invernadero plegada. Colócala desde el inventario sin gastar materiales; al guardarla se pierde lo que hubiera dentro."] =
+            "A folded greenhouse dome. Place it from the inventory without spending materials; storing it loses anything inside.",
+        ["Bandeja abierta para cultivar al descubierto. Solo las plantas resistentes cosechan en un bioma cálido; la cúpula es más segura."] =
+            "Open tray for planting outdoors. Only hardy plants harvest in a warm biome; a dome is safer.",
+        ["Parches de aleación y sellador"] = "Alloy patches and sealant",
+        ["Celdas de silicio sobre bastidor"] = "Silicon cells on a frame",
+        ["Para hablar con la Tierra"] = "To talk with Earth",
+        ["Propelente hecho con agua y hierro"] = "Propellant made from water and iron",
+        ["Toberas y turbobomba. Exige las otras cuatro piezas."] =
+            "Nozzles and turbopump. Requires the other four parts.",
+        ["Rompe roca compacta."] = "Breaks compact rock.",
+        ["Retira regolito suelto."] = "Removes loose regolith.",
+        ["Extrae depósitos de roca."] = "Extracts rock deposits.",
+        ["Refuerza un martillo con basalto."] = "Reinforces a hammer with basalt.",
+        ["Bandeja abierta para cultivar al descubierto."] = "Open tray for planting outdoors.",
+
+        // ---- mail -----------------------------------------------------------
+        ["Sin mensajes."] = "No messages.",
+        ["Correo de la nave"] = "Ship mail",
+        ["SEÑAL INTERFERIDA"] = "INTERFERENCE",
+        ["Hay una transmisión atrapada en la radio de la nave."] = "A transmission is trapped in the ship's radio.",
+        ["{0} mensaje(s) sin leer"] = "{0} unread message(s)",
+
+        // ---- mission goals / end --------------------------------------------
+        ["Extrae 5 de hielo"] = "Mine 5 ice",
+        ["Planta tu primera papa"] = "Plant your first potato",
+        ["Cosecha tus primeras papas"] = "Harvest your first potatoes",
+        ["Te quedaste sin oxígeno. Recarga el traje con hielo antes de que baje del 25 %."] =
+            "You ran out of oxygen. Refill your suit with ice before it drops below 25%.",
+        ["La falta de alimento terminó con tus fuerzas. Cultiva y come papas con regularidad."] =
+            "Lack of food wore you down. Grow and eat potatoes regularly.",
+        ["Reparaste la nave en el Sol {0} y llevaste a la superviviente a casa. No vuelves solo."] =
+            "You repaired the ship on Sol {0} and brought the survivor home. You don't return alone.",
+        ["Reparaste la nave en el Sol {0} y despegaste. La señal de la superviviente quedó en silencio, atrás."] =
+            "You repaired the ship on Sol {0} and lifted off. The survivor's signal faded behind you.",
+        ["Reparaste la nave en el Sol {0}. En algún lugar del cráter, una baliza se apaga para siempre."] =
+            "You repaired the ship on Sol {0}. Somewhere in the crater, a beacon goes dark forever.",
+        ["Reparaste la nave en el Sol {0} y vuelves a casa. El motor de ascenso respondió a la primera."] =
+            "You repaired the ship on Sol {0} and head home. The ascent engine fired on the first try.",
+        ["La superviviente sube a la nave. No vuelves solo."] = "The survivor boards the ship. You don't return alone.",
+        ["Despegas con su señal a la espalda."] = "You lift off with her signal behind you.",
+        ["La baliza queda en silencio."] = "The beacon goes silent.",
+
+        // ---- plant / inventory ---------------------------------------------
+        ["Plantar"] = "Plant",
+        ["Elige un cultivo para este hueco."] = "Choose a crop for this slot.",
+        ["Cultivos"] = "Crops",
+        ["Plantar en bandeja abierta"] = "Plant in open tray",
+        ["Plantar en Cúpula {0}"] = "Plant in Dome {0}",
+        ["El clima marciano manda; no todo sobrevive ahí fuera."] = "Martian weather rules; not everything survives out there.",
+        ["Interior estable; casi todo crece bien aquí."] = "Stable interior; almost everything grows well here.",
+        ["Crecerá aquí"] = "Will grow here",
+        ["{0} s · {1} agua · cosecha {2}"] = "{0} s · {1} water · yield {2}",
+        ["Comida"] = "Food",
+        ["Herramientas"] = "Tools",
+        ["Minerales"] = "Minerals",
+        ["Componentes"] = "Components",
+        ["Semillas"] = "Seeds",
+        ["Semillas de lechuga"] = "Lettuce seeds",
+        ["Semillas de rábano"] = "Radish seeds",
+        ["Semillas de papa"] = "Potato seeds",
+        ["Semillas de tomate"] = "Tomato seeds",
+        ["Semillas de trigo"] = "Wheat seeds",
+        ["Semillas de lechuga para el invernadero."] = "Lettuce seeds for the greenhouse.",
+        ["Semillas de rábano de ciclo corto."] = "Short-cycle radish seeds.",
+        ["Semillas de tomate enano para cúpula."] = "Dwarf tomato seeds for a dome.",
+        ["Semillas de trigo enano para cámara cerrada."] = "Dwarf wheat seeds for a closed chamber.",
+        ["Estructuras"] = "Structures",
+        ["Otros"] = "Other",
+        ["Selecciona un objeto"] = "Select an item",
+        ["Elige una categoría y pulsa un objeto para ver su descripción."] =
+            "Pick a category and tap an item to see its description.",
+        ["Utilizar"] = "Use",
+        ["Definir fuente de comida"] = "Set as food source",
+        ["Colocar"] = "Place",
+        ["Usar"] = "Use",
+        ["Herramienta"] = "Tool",
+        ["Mineral"] = "Mineral",
+        ["Componente"] = "Component",
+        ["Semilla"] = "Seed",
+        ["Estructura"] = "Structure",
+        ["Objeto"] = "Item",
+
+        // ---- item names -----------------------------------------------------
+        ["Hielo"] = "Ice",
+        ["Agua"] = "Water",
+        ["Hierro"] = "Iron",
+        ["Silicio"] = "Silicon",
+        ["Papas"] = "Potatoes",
+        ["Lechuga"] = "Lettuce",
+        ["Rábano"] = "Radish",
+        ["Tomate"] = "Tomato",
+        ["Trigo enano"] = "Dwarf wheat",
+        ["Fragmentos de roca"] = "Rock fragments",
+        ["Regolito"] = "Regolith",
+        ["Basalto"] = "Basalt",
+        ["Fijaciones recuperadas"] = "Recovered fasteners",
+        ["Mango"] = "Handle",
+        ["Martillo improvisado"] = "Improvised hammer",
+        ["Pala improvisada"] = "Improvised shovel",
+        ["Pico básico"] = "Basic pick",
+        ["Pico reforzado"] = "Reinforced pick",
+        ["Cúpula almacenada"] = "Stored dome",
+        ["Bandeja de cultivo"] = "Crop tray",
+
+        // ---- plant names ----------------------------------------------------
+        ["Papa"] = "Potato",
+
+        // ---- part names -----------------------------------------------------
+        ["Sellado del casco"] = "Hull seal",
+        ["Paneles solares"] = "Solar panels",
+        ["Antena de alta ganancia"] = "High-gain antenna",
+        ["Tanque de combustible"] = "Fuel tank",
+        ["Motor de ascenso"] = "Ascent engine",
+    };
+}

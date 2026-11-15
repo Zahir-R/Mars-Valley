@@ -53,28 +53,28 @@ public sealed class SlotListView
             var action = _actionButtons[info.Id];
             action.Disabled = !_saveMode && !info.Exists;
             action.Text = _saveMode
-                ? (info.Exists ? "Sobrescribir" : "Guardar")
-                : "Cargar";
+                ? (info.Exists ? Loc.T("Sobrescribir") : Loc.T("Guardar"))
+                : Loc.T("Cargar");
 
-            _deleteButtons[info.Id].Text = "Borrar";
+            _deleteButtons[info.Id].Text = Loc.T("Borrar");
         }
     }
 
     private void BuildRow(string id)
     {
         var name = UiTheme.Text(SaveSlots.NameOf(id), 14, Palette.Suit, Fonts.SansWeight(700));
-        var sub = UiTheme.Label("Vacía", 11, Palette.Muted);
+        var sub = UiTheme.Label(Loc.T("Vacía"), 11, Palette.Muted);
 
         var texts = UiTheme.VBox(2);
         texts.AddChild(name);
         texts.AddChild(sub);
         texts.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
 
-        var action = UiTheme.PrimaryButton(_saveMode ? "Guardar" : "Cargar", 12);
+        var action = UiTheme.PrimaryButton(_saveMode ? Loc.T("Guardar") : Loc.T("Cargar"), 12);
         action.CustomMinimumSize = new Vector2(150, 0);
         action.Pressed += () => TriggerAction(id);
 
-        var delete = UiTheme.GhostButton("Borrar", 12);
+        var delete = UiTheme.GhostButton(Loc.T("Borrar"), 12);
         delete.CustomMinimumSize = new Vector2(130, 0);
         delete.Visible = id != SaveSlots.Autosave;
         delete.Pressed += () => TriggerDelete(id);
@@ -96,14 +96,14 @@ public sealed class SlotListView
         if (_saveMode && SaveManager.HasSave(id) && !_saveArmed.GetValueOrDefault(id))
         {
             _saveArmed[id] = true;
-            _actionButtons[id].Text = "Confirmar";
+            _actionButtons[id].Text = Loc.T("Confirmar");
             _deleteArmed[id] = false;
-            _deleteButtons[id].Text = "Borrar";
+            _deleteButtons[id].Text = Loc.T("Borrar");
             return;
         }
 
         _saveArmed[id] = false;
-        _actionButtons[id].Text = _saveMode ? (SaveManager.HasSave(id) ? "Sobrescribir" : "Guardar") : "Cargar";
+        _actionButtons[id].Text = _saveMode ? (SaveManager.HasSave(id) ? Loc.T("Sobrescribir") : Loc.T("Guardar")) : Loc.T("Cargar");
         ActionConfirmed?.Invoke(id);
     }
 
@@ -112,14 +112,14 @@ public sealed class SlotListView
         if (!_deleteArmed.GetValueOrDefault(id))
         {
             _deleteArmed[id] = true;
-            _deleteButtons[id].Text = "¿Borrar?";
+            _deleteButtons[id].Text = Loc.T("¿Borrar?");
             _saveArmed[id] = false;
-            _actionButtons[id].Text = _saveMode ? (SaveManager.HasSave(id) ? "Sobrescribir" : "Guardar") : "Cargar";
+            _actionButtons[id].Text = _saveMode ? (SaveManager.HasSave(id) ? Loc.T("Sobrescribir") : Loc.T("Guardar")) : Loc.T("Cargar");
             return;
         }
 
         _deleteArmed[id] = false;
-        _deleteButtons[id].Text = "Borrar";
+        _deleteButtons[id].Text = Loc.T("Borrar");
         DeleteConfirmed?.Invoke(id);
     }
 }

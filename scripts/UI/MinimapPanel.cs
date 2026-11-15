@@ -114,13 +114,5 @@ public partial class MinimapPanel : Control
 
         DrawString(Fonts.MonoWeight(600), new Vector2(4, Size.Y - 6), "GALILEO / Crater Gale",
             HorizontalAlignment.Left, -1, 9, new Color(1, 1, 1, 0.65f));
-        var legend = string.Empty;
-        if (s.NpcPhase == NpcPhase.AwaitingSupplies && !s.CacheFilled) legend = "● suministros";
-        else if (s.SiteUnlocked && !s.SurvivorFound && !s.SiteSkipped) legend = "✕ señal";
-        if (legend.Length > 0)
-        {
-            DrawString(Fonts.MonoWeight(600), new Vector2(Size.X - 4, Size.Y - 6), legend,
-                HorizontalAlignment.Right, -1, 9, new Color(1, 0.85f, 0.5f, 0.75f));
-        }
     }
 }
